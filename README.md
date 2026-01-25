@@ -56,9 +56,15 @@ python main.py
 
 - **F1-F8** : Switch vers le personnage 1-8
 - **`** (backtick) : Passer au personnage suivant dans l'ordre d'initiative
-- **\** (backslash) : Passer au personnage précédent dans l'ordre d'initiative
+- **\\** (backslash) : Passer au personnage précédent dans l'ordre d'initiative
 - **Ctrl+Alt+O** : Afficher/masquer l'overlay
-- **Ctrl+Alt+Q** : Quitter l'application
+- **Ctrl+Alt+Q** : Quitter l'application complètement
+
+### Comment quitter
+
+- **Raccourci** : `Ctrl+Alt+Q`
+- **System Tray** : Clic droit sur l'icône dans la barre des tâches → Quitter
+- L'overlay et tous les raccourcis seront désactivés automatiquement
 
 ### Overlay
 

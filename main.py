@@ -188,26 +188,38 @@ class DofusWindowSwitcher:
     
     def quit(self):
         """Quitte l'application proprement."""
-        print("\n👋 Arrêt de l'application...")
         self.running = False
         
         # Sauvegarder la configuration
-        self._save_config()
-        print("✓ Configuration sauvegardée")
+        try:
+            self._save_config()
+        except:
+            pass
         
         # Désenregistrer les hotkeys
-        self.hotkey_manager.unregister_all()
-        print("✓ Raccourcis désactivés")
-        
-        # Arrêter l'overlay
-        self.overlay.destroy()
+        try:
+            self.hotkey_manager.unregister_all()
+        except:
+            pass
         
         # Arrêter l'icône system tray
         if self.tray_icon:
-            self.tray_icon.stop()
+            try:
+                self.tray_icon.stop()
+            except:
+                pass
         
-        print("✓ Au revoir!")
-        sys.exit(0)
+        # Arrêter l'overlay (IMPORTANT: fermer le mainloop tkinter)
+        if self.overlay.root:
+            try:
+                self.overlay.root.quit()  # Arrête le mainloop
+                self.overlay.root.destroy()  # Détruit la fenêtre
+            except:
+                pass
+        
+        # Forcer la sortie
+        import os
+        os._exit(0)
 
 
 def main():

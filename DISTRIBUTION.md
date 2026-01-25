@@ -38,7 +38,14 @@ Une fois l'application lancée :
 - **`** (backtick) : Personnage suivant dans l'ordre
 - **\\** (backslash) : Personnage précédent dans l'ordre
 - **Ctrl+Alt+O** : Afficher/masquer l'overlay
-- **Ctrl+Alt+Q** : Quitter l'application
+- **Ctrl+Alt+Q** : **Quitter l'application complètement**
+
+### 🚪 Comment arrêter l'application
+
+1. **Raccourci clavier** : Appuyez sur `Ctrl+Alt+Q`
+2. **Icône system tray** : Faites un clic droit sur l'icône verte dans la barre des tâches (en bas à droite) → "Quitter"
+
+L'overlay disparaîtra et tous les raccourcis seront désactivés.
 
 ## 📊 Overlay Visuel
 
