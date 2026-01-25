@@ -1,0 +1,15 @@
+[project]
+name = "dofus-window-switcher"
+version = "0.1.0"
+description = "Utilitaire de gestion de fenêtres DOFUS avec ordre d'initiative et overlay visuel"
+requires-python = ">=3.8"
+dependencies = [
+    "pywin32>=305",
+    "keyboard>=0.13.5",
+    "pystray>=0.19.5",
+    "Pillow>=10.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
