@@ -14,8 +14,8 @@ class OverlayWindow:
         # Configuration par défaut
         self.position_x = 100
         self.position_y = 100
-        self.width = 800
-        self.height = 60
+        self.width = 855  # Augmenté de 800 à 1100 pour voir tous les noms
+        self.height = 50
         self.opacity = 0.9
         self.font_size = 14
         
@@ -33,36 +33,43 @@ class OverlayWindow:
         
     def create_window(self):
         """Crée la fenêtre overlay."""
-        self.root = tk.Tk()
-        self.root.title("DOFUS Window Switcher")
-        
-        # Configuration de la fenêtre
-        self.root.geometry(f"{self.width}x{self.height}+{self.position_x}+{self.position_y}")
-        self.root.attributes('-topmost', True)
-        self.root.attributes('-alpha', self.opacity)
-        self.root.overrideredirect(True)  # Pas de bordure de fenêtre
-        
-        # Fond semi-transparent
-        self.root.configure(bg='#1a1a1a')
-        
-        # Frame principal
-        self.main_frame = tk.Frame(self.root, bg='#1a1a1a')
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Frame pour les personnages
-        self.char_frame = tk.Frame(self.main_frame, bg='#1a1a1a')
-        self.char_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Binding pour déplacer la fenêtre
-        self.root.bind('<Button-1>', self._start_move)
-        self.root.bind('<B1-Motion>', self._do_move)
-        
-        # Variables pour le déplacement
-        self._offset_x = 0
-        self._offset_y = 0
-        
-        if not self.visible:
-            self.root.withdraw()
+        try:
+            self.root = tk.Tk()
+            self.root.title("DOFUS Window Switcher")
+            
+            # Configuration de la fenêtre
+            self.root.geometry(f"{self.width}x{self.height}+{self.position_x}+{self.position_y}")
+            self.root.attributes('-topmost', True)
+            self.root.attributes('-alpha', self.opacity)
+            self.root.overrideredirect(True)  # Pas de bordure de fenêtre
+            
+            # Fond semi-transparent
+            self.root.configure(bg='#1a1a1a')
+            
+            # Frame principal
+            self.main_frame = tk.Frame(self.root, bg='#1a1a1a')
+            self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            # Frame pour les personnages
+            self.char_frame = tk.Frame(self.main_frame, bg='#1a1a1a')
+            self.char_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            # Binding pour déplacer la fenêtre
+            self.root.bind('<Button-1>', self._start_move)
+            self.root.bind('<B1-Motion>', self._do_move)
+            
+            # Variables pour le déplacement
+            self._offset_x = 0
+            self._offset_y = 0
+            
+            # Empêcher la fermeture par défaut
+            self.root.protocol("WM_DELETE_WINDOW", lambda: None)
+            
+            if not self.visible:
+                self.root.withdraw()
+        except Exception as e:
+            print(f"Erreur lors de la création de l'overlay: {e}")
+            self.root = None
     
     def _start_move(self, event):
         """Commence le déplacement de la fenêtre."""
@@ -149,17 +156,19 @@ class OverlayWindow:
             self._blink_next(0)
     
     def _blink_next(self, count: int):
-        """Fait clignoter le prochain personnage."""
-        if count >= 6 or not self.labels or self.next_index >= len(self.labels):
+        """Fait clignoter le prochain personnage (subtil et lent)."""
+        if count >= 4 or not self.labels or self.next_index >= len(self.labels):
             return
         
         if self.next_index < len(self.labels):
             label = self.labels[self.next_index]
             current_fg = label.cget('fg')
-            new_fg = "#ffaa00" if current_fg == "#1a1a1a" else "#1a1a1a"
+            # Alternance plus subtile entre orange vif et orange pâle
+            new_fg = "#ffaa00" if current_fg == "#cc8800" else "#cc8800"
             label.config(fg=new_fg)
             
-            self.root.after(300, lambda: self._blink_next(count + 1))
+            # Intervalle plus long (1000ms au lieu de 300ms)
+            self.root.after(1000, lambda: self._blink_next(count + 1))
     
     def show(self):
         """Affiche l'overlay."""

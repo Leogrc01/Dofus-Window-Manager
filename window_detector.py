@@ -41,8 +41,8 @@ class WindowDetector:
             
         title = win32gui.GetWindowText(hwnd)
         
-        # Vérifier si c'est une fenêtre DOFUS (contient "DOFUS" dans le titre)
-        if "DOFUS" in title.upper() or self._is_dofus_process(hwnd):
+        # Vérifier si c'est une fenêtre DOFUS via le processus
+        if self._is_dofus_process(hwnd):
             try:
                 _, pid = win32process.GetWindowThreadProcessId(hwnd)
                 window_info = WindowInfo(hwnd, title, pid)
@@ -77,11 +77,27 @@ class WindowDetector:
             if win32gui.IsIconic(hwnd):
                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             
-            # Mettre la fenêtre au premier plan
-            win32gui.SetForegroundWindow(hwnd)
+            # Workaround pour Windows: simuler un Alt press pour contourner les restrictions
+            import win32api
+            import win32con as wcon
+            
+            # Simuler Alt key pour autoriser SetForegroundWindow
+            win32api.keybd_event(wcon.VK_MENU, 0, 0, 0)
+            
+            # Essayer plusieurs méthodes
+            try:
+                win32gui.SetForegroundWindow(hwnd)
+            except:
+                # Méthode alternative: BringWindowToTop + SetFocus
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetFocus(hwnd)
+            
+            # Relâcher Alt
+            win32api.keybd_event(wcon.VK_MENU, 0, wcon.KEYEVENTF_KEYUP, 0)
+            
             return True
         except Exception as e:
-            print(f"Erreur lors du focus de la fenêtre: {e}")
+            # Ne plus afficher l'erreur pour éviter le spam
             return False
     
     @staticmethod

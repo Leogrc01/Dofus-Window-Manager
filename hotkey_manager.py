@@ -8,8 +8,8 @@ class HotkeyManager:
     """Gère les raccourcis clavier pour le switching de fenêtres."""
     
     DEFAULT_POSITION_KEYS = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8']
-    DEFAULT_NEXT_KEY = 'tab'
-    DEFAULT_PREVIOUS_KEY = 'shift+tab'
+    DEFAULT_NEXT_KEY = '`'  # Backtick/accent grave
+    DEFAULT_PREVIOUS_KEY = '\\'  # Backslash
     DEFAULT_TOGGLE_OVERLAY_KEY = 'ctrl+alt+o'
     DEFAULT_QUIT_KEY = 'ctrl+alt+q'
     
@@ -29,7 +29,7 @@ class HotkeyManager:
         self.quit_key = self.DEFAULT_QUIT_KEY
         
     def register_all(self):
-        """Enregistre tous les raccourcis clavier."""
+        """Enregistre tous les raccourcis clavier et souris."""
         self.unregister_all()
         
         # Raccourcis pour chaque position (F1-F8)

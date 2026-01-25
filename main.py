@@ -58,9 +58,10 @@ class DofusWindowSwitcher:
         self._update_overlay()
         
         print("✓ Initialisation terminée")
-        print("\nRaccourcis clavier:")
+        print("\nRaccourcis:")
         print("  F1-F8      : Switch vers le personnage 1-8")
-        print("  Tab        : Personnage suivant")
+        print("  `          : Personnage suivant")
+        print("  \\          : Personnage précédent")
         print("  Ctrl+Alt+O : Afficher/masquer l'overlay")
         print("  Ctrl+Alt+Q : Quitter")
     
@@ -170,8 +171,19 @@ class DofusWindowSwitcher:
         
         # Lancer la boucle principale de l'overlay (bloquant)
         try:
-            self.overlay.run()
+            if self.overlay.root:
+                self.overlay.run()
+            else:
+                # Si l'overlay n'a pas pu être créé, garder l'app en vie
+                print("\n⚠ Overlay non disponible - Mode sans GUI")
+                print("Les raccourcis clavier fonctionnent toujours.")
+                print("Appuyez sur Ctrl+Alt+Q pour quitter\n")
+                while self.running:
+                    time.sleep(0.5)
         except KeyboardInterrupt:
+            self.quit()
+        except Exception as e:
+            print(f"Erreur overlay: {e}")
             self.quit()
     
     def quit(self):

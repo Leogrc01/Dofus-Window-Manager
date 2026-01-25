@@ -27,12 +27,24 @@ pip install -r requirements.txt
 
 ## ⚙️ Configuration
 
-Au premier lancement, l'application détecte vos fenêtres DOFUS et vous permet de :
-- Assigner un nom à chaque fenêtre (ex: PANDA, ENU, ENI, etc.)
-- Définir l'ordre d'initiative
-- Configurer les raccourcis clavier
+### Configuration graphique (recommandé)
 
-La configuration est sauvegardée dans `config.json`.
+Lancez l'interface de configuration GUI :
+```bash
+python configure.py
+```
+
+Cette interface vous permet de :
+- 🔍 Détecter automatiquement vos fenêtres DOFUS
+- 🎯 Assigner chaque fenêtre à une position (F1-F8)
+- ✏️ Renommer vos personnages (ex: Roublard, Sram, Pandawa...)
+- 💾 Sauvegarder la configuration facilement
+
+**Utilisez cette interface à chaque fois que vous relancez DOFUS** pour mettre à jour les handles de fenêtres.
+
+### Configuration manuelle
+
+Vous pouvez aussi éditer `config.json` directement, mais les `hwnd` changent à chaque redémarrage de DOFUS.
 
 ## 🎯 Utilisation
 
@@ -43,7 +55,8 @@ python main.py
 ### Raccourcis par défaut
 
 - **F1-F8** : Switch vers le personnage 1-8
-- **Tab** : Passer au personnage suivant dans l'ordre d'initiative
+- **`** (backtick) : Passer au personnage suivant dans l'ordre d'initiative
+- **\** (backslash) : Passer au personnage précédent dans l'ordre d'initiative
 - **Ctrl+Alt+O** : Afficher/masquer l'overlay
 - **Ctrl+Alt+Q** : Quitter l'application
 
