@@ -206,22 +206,18 @@ class ConfigWindow:
     def _launch_app(self):
         """Lance l'application principale."""
         try:
-            # Lancer main.py dans un nouveau processus
-            if sys.platform == "win32":
-                # Sur Windows, utiliser CREATE_NEW_CONSOLE pour une nouvelle fenêtre
-                subprocess.Popen(
-                    [sys.executable, "main.py"],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE
-                )
-            else:
-                # Sur Linux/Mac
-                subprocess.Popen([sys.executable, "main.py"])
+            # Fermer la fenêtre de config
+            if self.root:
+                self.root.destroy()
             
-            messagebox.showinfo(
-                "Application lancée",
-                "✓ L'application a été lancée!\n\nVous pouvez fermer cette fenêtre."
-            )
+            # Importer et lancer l'application principale directement
+            from main import DofusWindowSwitcher
+            app = DofusWindowSwitcher()
+            app.initialize()
+            app.run()
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             messagebox.showerror("Erreur", f"Impossible de lancer l'application:\n{e}")
     
     def _save_config_internal(self) -> bool:
