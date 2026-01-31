@@ -3,20 +3,27 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import subprocess
 import sys
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Dict
 from window_detector import WindowDetector, WindowInfo
 
 
 class ConfigWindow:
     """Fenêtre de configuration pour assigner les personnages."""
     
-    def __init__(self, detector: WindowDetector, on_save: Callable):
+    def __init__(self, detector: WindowDetector, on_save: Callable, allow_launch: bool = True, current_hotkeys: Optional[Dict] = None, previous_config: Optional[Dict] = None):
         self.detector = detector
         self.on_save = on_save
+        self.allow_launch = allow_launch
+        self.current_hotkeys = current_hotkeys or {}
+        self.previous_config = previous_config or {}
         self.root: Optional[tk.Tk] = None
         self.windows: List[WindowInfo] = []
         self.position_combos: List[ttk.Combobox] = []
         self.name_entries: List[tk.Entry] = []
+        
+        # Widgets pour les raccourcis
+        self.next_key_entry: Optional[tk.Entry] = None
+        self.previous_key_entry: Optional[tk.Entry] = None
         
     def show(self):
         """Affiche la fenêtre de configuration."""
@@ -29,7 +36,7 @@ class ConfigWindow:
         
         self.root = tk.Tk()
         self.root.title("Configuration DOFUS Window Switcher")
-        self.root.geometry("700x500")
+        self.root.geometry("700x650")
         self.root.resizable(False, False)
         
         # Style
@@ -115,7 +122,18 @@ class ConfigWindow:
             pos_label.grid(row=1, column=0, sticky="w", padx=(0, 10))
             
             pos_combo = ttk.Combobox(frame, values=positions, state="readonly", width=18)
-            pos_combo.current(i)  # Défaut: ordre de détection
+            
+            # Essayer de récupérer la position précédente pour ce personnage
+            char_name = self._extract_character_name(window.title)
+            prev_position = self._get_previous_position(char_name)
+            
+            if prev_position is not None:
+                # Utiliser la position précédente
+                pos_combo.current(prev_position)
+            else:
+                # Défaut: ordre de détection
+                pos_combo.current(i)
+            
             pos_combo.grid(row=1, column=1, sticky="w")
             self.position_combos.append(pos_combo)
             
@@ -132,6 +150,84 @@ class ConfigWindow:
             sep = ttk.Separator(scrollable_frame, orient="horizontal")
             sep.pack(fill=tk.X, padx=10, pady=5)
         
+        # Section Raccourcis
+        hotkeys_frame = tk.Frame(scrollable_frame, bg="white", pady=10)
+        hotkeys_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        hotkeys_title = tk.Label(
+            hotkeys_frame,
+            text="⌨️ Raccourcis de navigation",
+            font=("Arial", 11, "bold"),
+            bg="white",
+            anchor="w"
+        )
+        hotkeys_title.pack(anchor="w", pady=(0, 10))
+        
+        # Touche "Suivant"
+        next_frame = tk.Frame(hotkeys_frame, bg="white")
+        next_frame.pack(fill=tk.X, pady=5)
+        
+        next_label = tk.Label(
+            next_frame,
+            text="Personnage suivant:",
+            font=("Arial", 9),
+            bg="white",
+            width=20,
+            anchor="w"
+        )
+        next_label.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.next_key_entry = tk.Entry(next_frame, width=15, font=("Arial", 9))
+        self.next_key_entry.insert(0, self.current_hotkeys.get("next_key", "`"))
+        self.next_key_entry.pack(side=tk.LEFT)
+        
+        next_hint = tk.Label(
+            next_frame,
+            text="(ex: tab, `, \u00e9, a, etc.)",
+            font=("Arial", 8),
+            bg="white",
+            fg="#666666"
+        )
+        next_hint.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Touche "Précédent"
+        prev_frame = tk.Frame(hotkeys_frame, bg="white")
+        prev_frame.pack(fill=tk.X, pady=5)
+        
+        prev_label = tk.Label(
+            prev_frame,
+            text="Personnage précédent:",
+            font=("Arial", 9),
+            bg="white",
+            width=20,
+            anchor="w"
+        )
+        prev_label.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.previous_key_entry = tk.Entry(prev_frame, width=15, font=("Arial", 9))
+        self.previous_key_entry.insert(0, self.current_hotkeys.get("previous_key", "\\"))
+        self.previous_key_entry.pack(side=tk.LEFT)
+        
+        prev_hint = tk.Label(
+            prev_frame,
+            text="(ex: shift+tab, \\, &, z, etc.)",
+            font=("Arial", 8),
+            bg="white",
+            fg="#666666"
+        )
+        prev_hint.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Info supplémentaire
+        info_hint = tk.Label(
+            hotkeys_frame,
+            text="💡 Pour les combinaisons, utilisez '+' (ex: shift+tab, ctrl+n)",
+            font=("Arial", 8, "italic"),
+            bg="white",
+            fg="#0066cc",
+            anchor="w"
+        )
+        info_hint.pack(anchor="w", pady=(10, 0))
+        
         # Boutons
         button_frame = tk.Frame(self.root, bg="#f0f0f0", pady=15)
         button_frame.pack(fill=tk.X, side=tk.BOTTOM)
@@ -147,43 +243,46 @@ class ConfigWindow:
         )
         cancel_btn.pack(side=tk.LEFT, padx=(20, 10))
         
-        # Bouton Sauvegarder & Lancer (action principale)
-        save_launch_btn = tk.Button(
-            button_frame,
-            text="🚀 Sauvegarder & Lancer",
-            command=self._save_and_launch,
-            font=("Arial", 10, "bold"),
-            bg="#ff6600",
-            fg="white",
-            width=20,
-            cursor="hand2"
-        )
-        save_launch_btn.pack(side=tk.RIGHT, padx=(10, 20))
+        # Boutons conditionnels selon le mode
+        if self.allow_launch:
+            # Bouton Sauvegarder & Lancer (action principale)
+            save_launch_btn = tk.Button(
+                button_frame,
+                text="🚀 Sauvegarder & Lancer",
+                command=self._save_and_launch,
+                font=("Arial", 10, "bold"),
+                bg="#ff6600",
+                fg="white",
+                width=20,
+                cursor="hand2"
+            )
+            save_launch_btn.pack(side=tk.RIGHT, padx=(10, 20))
+            
+            # Bouton pour lancer l'application (si déjà config)
+            launch_btn = tk.Button(
+                button_frame,
+                text="▶ Lancer",
+                command=self._launch_app,
+                font=("Arial", 9),
+                bg="#0066ff",
+                fg="white",
+                width=10,
+                cursor="hand2"
+            )
+            launch_btn.pack(side=tk.RIGHT, padx=(10, 5))
         
-        # Bouton pour lancer l'application (si déjà config)
-        launch_btn = tk.Button(
-            button_frame,
-            text="▶ Lancer",
-            command=self._launch_app,
-            font=("Arial", 9),
-            bg="#0066ff",
-            fg="white",
-            width=10,
-            cursor="hand2"
-        )
-        launch_btn.pack(side=tk.RIGHT, padx=(10, 5))
-        
+        # Bouton Sauvegarder (toujours présent)
         save_btn = tk.Button(
             button_frame,
-            text="Sauvegarder",
+            text="💾 Sauvegarder & Appliquer" if not self.allow_launch else "Sauvegarder",
             command=self._save_config,
-            font=("Arial", 9),
+            font=("Arial", 10, "bold") if not self.allow_launch else ("Arial", 9),
             bg="#00cc00",
             fg="white",
-            width=10,
+            width=20 if not self.allow_launch else 10,
             cursor="hand2"
         )
-        save_btn.pack(side=tk.RIGHT, padx=(10, 5))
+        save_btn.pack(side=tk.RIGHT, padx=(10, 20 if not self.allow_launch else 5))
         
         self.root.mainloop()
     
@@ -195,6 +294,19 @@ class ConfigWindow:
             # Retourner la classe (2ème élément) au lieu du nom
             return parts[1].strip()
         return "Perso"
+    
+    def _get_previous_position(self, character_name: str) -> Optional[int]:
+        """Récupère la position précédente d'un personnage depuis la config."""
+        if not self.previous_config:
+            return None
+        
+        characters = self.previous_config.get("characters", [])
+        for char in characters:
+            # Comparer les noms (ignorer la casse)
+            if char.get("name", "").lower() == character_name.lower():
+                return char.get("position")
+        
+        return None
     
     def _save_and_launch(self):
         """Sauvegarde la configuration et lance l'application."""
@@ -244,8 +356,14 @@ class ConfigWindow:
                     "position": position
                 })
         
-        # Appeler le callback de sauvegarde
-        self.on_save(characters)
+        # Récupérer les raccourcis personnalisés
+        hotkeys = {
+            "next_key": self.next_key_entry.get().strip() if self.next_key_entry else "`",
+            "previous_key": self.previous_key_entry.get().strip() if self.previous_key_entry else "\\"
+        }
+        
+        # Appeler le callback de sauvegarde avec les personnages ET les raccourcis
+        self.on_save(characters, hotkeys)
         return True
     
     def _save_config(self):

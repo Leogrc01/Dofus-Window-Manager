@@ -38,6 +38,7 @@ Cette interface vous permet de :
 - 🔍 Détecter automatiquement vos fenêtres DOFUS
 - 🎯 Assigner chaque fenêtre à une position (F1-F8)
 - ✏️ Renommer vos personnages (ex: Roublard, Sram, Pandawa...)
+- ⌨️ Personnaliser les touches de navigation (suivant/précédent)
 - 💾 Sauvegarder la configuration facilement
 
 **Utilisez cette interface à chaque fois que vous relancez DOFUS** pour mettre à jour les handles de fenêtres.
@@ -55,10 +56,13 @@ python main.py
 ### Raccourcis par défaut
 
 - **F1-F8** : Switch vers le personnage 1-8
-- **`** (backtick) : Passer au personnage suivant dans l'ordre d'initiative
-- **\\** (backslash) : Passer au personnage précédent dans l'ordre d'initiative
+- **`** (backtick) : Passer au personnage suivant dans l'ordre d'initiative **(personnalisable)**
+- **\\** (backslash) : Passer au personnage précédent dans l'ordre d'initiative **(personnalisable)**
 - **Ctrl+Alt+O** : Afficher/masquer l'overlay
+- **Ctrl+Alt+C** : Modifier la configuration en temps réel
 - **Ctrl+Alt+Q** : Quitter l'application complètement
+
+💡 **Clavier 60% ?** Les touches **Suivant** et **Précédent** sont personnalisables dans la fenêtre de configuration !
 
 ### Comment quitter
 
@@ -74,6 +78,29 @@ L'overlay affiche :
   ^^^
   Perso actif (surligné)
 ```
+
+### Modification de la configuration en temps réel
+
+Vous pouvez modifier l'ordre d'initiative **pendant que l'application fonctionne** sans avoir à la redémarrer :
+
+1. **Appuyez sur Ctrl+Alt+C** (ou clic droit sur l'icône system tray → "Modifier la configuration")
+2. La fenêtre de configuration s'ouvre avec les fenêtres DOFUS actuelles
+3. Modifiez l'ordre, les noms, **et les raccourcis de navigation**
+4. Cliquez sur **"Sauvegarder & Appliquer"**
+5. La configuration est immédiatement appliquée et l'overlay se met à jour
+
+⚡ Aucun besoin de redémarrer l'application ou l'overlay !
+
+#### Personnaliser les raccourcis de navigation
+
+Dans la section **⌨️ Raccourcis de navigation** de la fenêtre de configuration :
+- **Personnage suivant** : Par défaut `` ` `` - changez-le pour `tab`, `é`, `a`, etc.
+- **Personnage précédent** : Par défaut `\` - changez-le pour `shift+tab`, `&`, `z`, etc.
+
+Exemples pour claviers 60% :
+- `tab` et `shift+tab`
+- `é` et `&` (touches numériques azerty)
+- `q` et `w`
 
 ## 📁 Structure du projet
 

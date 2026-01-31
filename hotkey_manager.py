@@ -11,6 +11,7 @@ class HotkeyManager:
     DEFAULT_NEXT_KEY = '`'  # Backtick/accent grave
     DEFAULT_PREVIOUS_KEY = '\\'  # Backslash
     DEFAULT_TOGGLE_OVERLAY_KEY = 'ctrl+alt+o'
+    DEFAULT_OPEN_CONFIG_KEY = 'ctrl+alt+c'
     DEFAULT_QUIT_KEY = 'ctrl+alt+q'
     
     def __init__(self, window_manager: WindowManager):
@@ -19,6 +20,7 @@ class HotkeyManager:
         
         # Callbacks personnalisables
         self.on_toggle_overlay: Callable = lambda: None
+        self.on_open_config: Callable = lambda: None
         self.on_quit: Callable = lambda: None
         
         # Configuration des touches
@@ -26,6 +28,7 @@ class HotkeyManager:
         self.next_key = self.DEFAULT_NEXT_KEY
         self.previous_key = self.DEFAULT_PREVIOUS_KEY
         self.toggle_overlay_key = self.DEFAULT_TOGGLE_OVERLAY_KEY
+        self.open_config_key = self.DEFAULT_OPEN_CONFIG_KEY
         self.quit_key = self.DEFAULT_QUIT_KEY
         
     def register_all(self):
@@ -61,6 +64,13 @@ class HotkeyManager:
         except Exception as e:
             print(f"Erreur lors de l'enregistrement de {self.toggle_overlay_key}: {e}")
         
+        # Raccourci pour ouvrir la configuration
+        try:
+            keyboard.add_hotkey(self.open_config_key, self._open_config)
+            self.registered_hotkeys.append(self.open_config_key)
+        except Exception as e:
+            print(f"Erreur lors de l'enregistrement de {self.open_config_key}: {e}")
+        
         # Raccourci pour quitter
         try:
             keyboard.add_hotkey(self.quit_key, self._quit)
@@ -93,6 +103,10 @@ class HotkeyManager:
         """Callback pour afficher/masquer l'overlay."""
         self.on_toggle_overlay()
     
+    def _open_config(self):
+        """Callback pour ouvrir la configuration."""
+        self.on_open_config()
+    
     def _quit(self):
         """Callback pour quitter l'application."""
         self.on_quit()
@@ -118,6 +132,11 @@ class HotkeyManager:
         self.toggle_overlay_key = key
         self.register_all()
     
+    def set_open_config_key(self, key: str):
+        """Configure la touche pour ouvrir la configuration."""
+        self.open_config_key = key
+        self.register_all()
+    
     def set_quit_key(self, key: str):
         """Configure la touche pour quitter."""
         self.quit_key = key
@@ -130,6 +149,7 @@ class HotkeyManager:
             "next_key": self.next_key,
             "previous_key": self.previous_key,
             "toggle_overlay_key": self.toggle_overlay_key,
+            "open_config_key": self.open_config_key,
             "quit_key": self.quit_key
         }
     
@@ -139,4 +159,5 @@ class HotkeyManager:
         self.next_key = data.get("next_key", self.DEFAULT_NEXT_KEY)
         self.previous_key = data.get("previous_key", self.DEFAULT_PREVIOUS_KEY)
         self.toggle_overlay_key = data.get("toggle_overlay_key", self.DEFAULT_TOGGLE_OVERLAY_KEY)
+        self.open_config_key = data.get("open_config_key", self.DEFAULT_OPEN_CONFIG_KEY)
         self.quit_key = data.get("quit_key", self.DEFAULT_QUIT_KEY)

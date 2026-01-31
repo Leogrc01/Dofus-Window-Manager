@@ -32,6 +32,7 @@ class DofusWindowSwitcher:
         # Configurer les callbacks des hotkeys
         self.hotkey_manager.on_toggle_overlay = self._toggle_overlay
         self.hotkey_manager.on_quit = self.quit
+        self.hotkey_manager.on_open_config = self._open_config
         
     def initialize(self):
         """Initialise l'application."""
@@ -63,6 +64,7 @@ class DofusWindowSwitcher:
         print("  `          : Personnage suivant")
         print("  \\          : Personnage précédent")
         print("  Ctrl+Alt+O : Afficher/masquer l'overlay")
+        print("  Ctrl+Alt+C : Modifier la configuration")
         print("  Ctrl+Alt+Q : Quitter")
     
     def _first_time_setup(self):
@@ -127,6 +129,68 @@ class DofusWindowSwitcher:
         self.overlay.toggle()
         self._save_config()
     
+    def reload_config(self):
+        """Recharge la configuration depuis le fichier sans redémarrer l'app."""
+        print("🔄 Rechargement de la configuration...")
+        config = self.config_manager.load()
+        
+        if config:
+            self._load_config(config)
+            self._update_overlay()
+            print("✓ Configuration rechargée avec succès")
+        else:
+            print("⚠ Impossible de recharger la configuration")
+    
+    def _open_config(self):
+        """Ouvre la fenêtre de configuration pour modifier l'ordre."""
+        from config_gui import ConfigWindow
+        
+        def on_save(characters, hotkeys):
+            """Callback appelé quand la config est sauvegardée."""
+            # Mettre à jour le window_manager avec les nouveaux personnages
+            self.window_manager.characters.clear()
+            for char in characters:
+                self.window_manager.add_character(
+                    char["name"],
+                    char["hwnd"],
+                    char["position"]
+                )
+            
+            # Mettre à jour les raccourcis clavier
+            if hotkeys.get("next_key"):
+                self.hotkey_manager.next_key = hotkeys["next_key"]
+            if hotkeys.get("previous_key"):
+                self.hotkey_manager.previous_key = hotkeys["previous_key"]
+            
+            # Ré-enregistrer les hotkeys avec les nouvelles touches
+            self.hotkey_manager.register_all()
+            
+            # Sauvegarder la configuration
+            self._save_config()
+            
+            # Recharger pour mettre à jour l'overlay
+            self.reload_config()
+            
+            print(f"✓ Raccourcis mis à jour: Suivant='{hotkeys.get('next_key')}', Précédent='{hotkeys.get('previous_key')}'")
+        
+        # Récupérer les hotkeys actuels et la config du window manager
+        current_hotkeys = self.hotkey_manager.to_dict()
+        previous_window_config = self.window_manager.to_dict()
+        
+        # Créer et afficher la fenêtre de configuration dans un thread séparé
+        def show_config():
+            config_window = ConfigWindow(
+                self.detector, 
+                on_save, 
+                allow_launch=False, 
+                current_hotkeys=current_hotkeys,
+                previous_config=previous_window_config
+            )
+            config_window.show()
+        
+        config_thread = threading.Thread(target=show_config, daemon=False)
+        config_thread.start()
+    
     def _create_tray_icon(self):
         """Crée l'icône dans la barre système."""
         # Créer une icône simple
@@ -136,6 +200,8 @@ class DofusWindowSwitcher:
         
         menu = pystray.Menu(
             item('DOFUS Window Switcher', lambda: None, enabled=False),
+            item('---', lambda: None),
+            item('Modifier la configuration', lambda: self._open_config()),
             item('---', lambda: None),
             item('Afficher overlay', lambda: self.overlay.show()),
             item('Masquer overlay', lambda: self.overlay.hide()),
