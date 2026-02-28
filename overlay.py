@@ -93,6 +93,46 @@ class OverlayWindow:
         if self.root:
             self.root.after(0, self._refresh_display)
     
+    def _calculate_optimal_width(self) -> int:
+        """Calcule la largeur optimale en fonction du nombre de personnages."""
+        if not self.characters:
+            return 200  # Largeur minimale
+        
+        # Estimer la largeur nécessaire
+        # Chaque caractère = ~8-10px selon la police
+        # Padding = 8px de chaque côté = 16px
+        # Crochets pour le perso actif = ~2 caractères supplémentaires
+        # Flèche = ~20px
+        
+        char_width_estimate = 9  # pixels par caractère
+        padding_per_label = 16  # padx=8 de chaque côté
+        arrow_width = 20  # largeur de la flèche + espacement
+        bracket_chars = 2  # crochets autour du perso actif
+        
+        total_width = 20  # padding du main_frame (10px de chaque côté)
+        
+        for i, char_name in enumerate(self.characters):
+            # Longueur du nom + crochets si c'est le perso actif
+            name_length = len(char_name)
+            if i == self.current_index:
+                name_length += bracket_chars
+            
+            # Largeur pour ce label
+            total_width += (name_length * char_width_estimate) + padding_per_label
+            
+            # Ajouter la flèche sauf pour le premier
+            if i > 0:
+                total_width += arrow_width
+        
+        # Ajouter une marge de sécurité de 10%
+        total_width = int(total_width * 1.1)
+        
+        # Limites min/max
+        min_width = 200
+        max_width = 1200
+        
+        return max(min_width, min(total_width, max_width))
+    
     def _refresh_display(self):
         """Rafraîchit l'affichage (doit être appelé depuis le thread GUI)."""
         # Supprimer les anciens widgets
@@ -104,6 +144,12 @@ class OverlayWindow:
         
         if not self.characters:
             return
+        
+        # Calculer et appliquer la largeur optimale
+        optimal_width = self._calculate_optimal_width()
+        if self.root and optimal_width != self.width:
+            self.width = optimal_width
+            self.root.geometry(f"{self.width}x{self.height}+{self.position_x}+{self.position_y}")
         
         # Créer les labels pour chaque personnage
         for i, char_name in enumerate(self.characters):
@@ -121,19 +167,19 @@ class OverlayWindow:
             
             # Déterminer le style du label
             if i == self.current_index:
-                # Personnage actif (surligné)
+                # Personnage actif (surligné en vert)
                 fg_color = "#00ff00"
                 bg_color = "#2a2a2a"
                 text = f"[{char_name}]"
                 font_weight = "bold"
             elif i == self.next_index:
-                # Prochain personnage (clignotement)
+                # Prochain personnage (orange)
                 fg_color = "#ffaa00"
                 bg_color = "#1a1a1a"
                 text = char_name
-                font_weight = "normal"
+                font_weight = "bold"
             else:
-                # Autres personnages
+                # Autres personnages (gris)
                 fg_color = "#aaaaaa"
                 bg_color = "#1a1a1a"
                 text = char_name
@@ -150,25 +196,6 @@ class OverlayWindow:
             )
             label.pack(side=tk.LEFT)
             self.labels.append(label)
-        
-        # Faire clignoter le prochain personnage
-        if self.next_index != self.current_index and 0 <= self.next_index < len(self.labels):
-            self._blink_next(0)
-    
-    def _blink_next(self, count: int):
-        """Fait clignoter le prochain personnage (subtil et lent)."""
-        if count >= 4 or not self.labels or self.next_index >= len(self.labels):
-            return
-        
-        if self.next_index < len(self.labels):
-            label = self.labels[self.next_index]
-            current_fg = label.cget('fg')
-            # Alternance plus subtile entre orange vif et orange pâle
-            new_fg = "#ffaa00" if current_fg == "#cc8800" else "#cc8800"
-            label.config(fg=new_fg)
-            
-            # Intervalle plus long (1000ms au lieu de 300ms)
-            self.root.after(1000, lambda: self._blink_next(count + 1))
     
     def show(self):
         """Affiche l'overlay."""

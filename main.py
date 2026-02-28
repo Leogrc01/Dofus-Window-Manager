@@ -81,11 +81,22 @@ class DofusWindowSwitcher:
         
         # Créer une configuration par défaut avec les fenêtres détectées
         for i, window in enumerate(windows[:8]):  # Max 8 fenêtres
-            char_name = f"PERSO{i+1}"
+            # Extraire le nom de classe depuis le titre de la fenêtre
+            char_name = self._extract_character_class(window.title, i+1)
             self.window_manager.add_character(char_name, window.hwnd, i)
             print(f"  [{i+1}] {window.title} → {char_name}")
         
-        print("\n💡 Pour personnaliser les noms, éditez le fichier config.json")
+        print("\n💡 Pour personnaliser les noms, utilisez Ctrl+Alt+C ou lancez configure.py")
+    
+    def _extract_character_class(self, title: str, fallback_number: int) -> str:
+        """Extrait le nom de la classe depuis le titre de la fenêtre DOFUS."""
+        # Format attendu: "NomPerso - Classe - Version"
+        parts = title.split(" - ")
+        if len(parts) >= 2:
+            # Retourner la classe (2ème élément)
+            return parts[1].strip()
+        # Fallback si le format n'est pas reconnu
+        return f"PERSO{fallback_number}"
     
     def _load_config(self, config: dict):
         """Charge la configuration depuis un dictionnaire."""
