@@ -1,11 +1,25 @@
-"""Module pour gérer les raccourcis clavier globaux."""
+"""Module pour gérer les raccourcis clavier et souris globaux."""
 import keyboard
-from typing import Callable, Dict, List
+from pynput import mouse as pynput_mouse
+from typing import Callable, Dict, List, Optional
 from window_manager import WindowManager
 
 
+# Mapping des noms de boutons souris vers pynput
+MOUSE_BUTTON_MAP = {
+    "mouse3": pynput_mouse.Button.middle,
+    "mouse4": pynput_mouse.Button.x1,
+    "mouse5": pynput_mouse.Button.x2,
+}
+
+
+def _is_mouse_button(key: str) -> bool:
+    """Vérifie si la touche est un bouton souris."""
+    return key.lower().strip() in MOUSE_BUTTON_MAP
+
+
 class HotkeyManager:
-    """Gère les raccourcis clavier pour le switching de fenêtres."""
+    """Gère les raccourcis clavier et souris pour le switching de fenêtres."""
     
     DEFAULT_POSITION_KEYS = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8']
     DEFAULT_NEXT_KEY = '`'  # Backtick/accent grave
@@ -34,6 +48,10 @@ class HotkeyManager:
         self.quit_key = self.DEFAULT_QUIT_KEY
         self.wheel_key = self.DEFAULT_WHEEL_KEY
         
+        # Listener souris (pynput)
+        self._mouse_listener: Optional[pynput_mouse.Listener] = None
+        self._mouse_callbacks: Dict[pynput_mouse.Button, Callable] = {}
+        
     def register_all(self):
         """Enregistre tous les raccourcis clavier et souris."""
         self.unregister_all()
@@ -46,19 +64,27 @@ class HotkeyManager:
             except Exception as e:
                 print(f"Erreur lors de l'enregistrement de {key}: {e}")
         
-        # Raccourci pour passer au suivant
-        try:
-            keyboard.add_hotkey(self.next_key, self._switch_to_next)
-            self.registered_hotkeys.append(self.next_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.next_key}: {e}")
+        # Raccourci pour passer au suivant (clavier ou souris)
+        if _is_mouse_button(self.next_key):
+            btn = MOUSE_BUTTON_MAP[self.next_key.lower().strip()]
+            self._mouse_callbacks[btn] = self._switch_to_next
+        else:
+            try:
+                keyboard.add_hotkey(self.next_key, self._switch_to_next)
+                self.registered_hotkeys.append(self.next_key)
+            except Exception as e:
+                print(f"Erreur lors de l'enregistrement de {self.next_key}: {e}")
         
-        # Raccourci pour passer au précédent
-        try:
-            keyboard.add_hotkey(self.previous_key, self._switch_to_previous)
-            self.registered_hotkeys.append(self.previous_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.previous_key}: {e}")
+        # Raccourci pour passer au précédent (clavier ou souris)
+        if _is_mouse_button(self.previous_key):
+            btn = MOUSE_BUTTON_MAP[self.previous_key.lower().strip()]
+            self._mouse_callbacks[btn] = self._switch_to_previous
+        else:
+            try:
+                keyboard.add_hotkey(self.previous_key, self._switch_to_previous)
+                self.registered_hotkeys.append(self.previous_key)
+            except Exception as e:
+                print(f"Erreur lors de l'enregistrement de {self.previous_key}: {e}")
         
         # Raccourci pour afficher/masquer l'overlay
         try:
@@ -87,9 +113,31 @@ class HotkeyManager:
             self.registered_hotkeys.append(self.wheel_key)
         except Exception as e:
             print(f"Erreur lors de l'enregistrement de {self.wheel_key}: {e}")
+        
+        # Démarrer le listener souris si des boutons sont configurés
+        self._start_mouse_listener()
+    
+    def _start_mouse_listener(self):
+        """Démarre le listener pynput pour les boutons souris configurés."""
+        if not self._mouse_callbacks:
+            return
+        
+        def on_click(x, y, button, pressed):
+            if pressed and button in self._mouse_callbacks:
+                self._mouse_callbacks[button]()
+        
+        self._mouse_listener = pynput_mouse.Listener(on_click=on_click)
+        self._mouse_listener.start()
     
     def unregister_all(self):
-        """Désenregistre tous les raccourcis clavier."""
+        """Désenregistre tous les raccourcis clavier et souris."""
+        # Arrêter le listener souris
+        if self._mouse_listener:
+            self._mouse_listener.stop()
+            self._mouse_listener = None
+        self._mouse_callbacks.clear()
+        
+        # Raccourcis clavier
         for hotkey in self.registered_hotkeys:
             try:
                 keyboard.remove_hotkey(hotkey)

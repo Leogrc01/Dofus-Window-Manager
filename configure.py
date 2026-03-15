@@ -43,12 +43,12 @@ def save_configuration(characters, hotkeys=None):
     }
     
     config_manager.save(config)
-    print("✓ Configuration sauvegardée dans config.json")
+    print("Configuration sauvegardée dans config.json")
 
 
 def main():
     """Point d'entrée principal."""
-    print("🎮 DOFUS Window Switcher - Configuration\n")
+    print("DOFUS Window Switcher - Configuration\n")
     
     detector = WindowDetector()
     config_manager = ConfigManager()
@@ -59,7 +59,7 @@ def main():
     previous_window_config = existing_config.get("window_manager", {}) if existing_config else {}
     
     if previous_window_config:
-        print("💾 Configuration précédente détectée - les positions seront pré-remplies\n")
+        print("Configuration précédente détectée - les positions seront pré-remplies\n")
     
     config_window = ConfigWindow(
         detector, 

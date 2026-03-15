@@ -1,11 +1,20 @@
-"""Fenêtre de configuration GUI pour gérer l'ordre des personnages."""
+﻿"""Fenêtre de configuration GUI pour gérer l'ordre des personnages."""
 import customtkinter as ctk
 from tkinter import messagebox
 import ctypes
+import os
 import subprocess
 import sys
 from typing import List, Callable, Optional, Dict
 from window_detector import WindowDetector, WindowInfo
+from font_loader import load_custom_fonts
+
+
+def _get_base_dir() -> str:
+    """Retourne le répertoire de base (compatible PyInstaller)."""
+    if getattr(sys, 'frozen', False):
+        return getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 # =============================================================================
@@ -57,6 +66,9 @@ class ConfigWindow:
             messagebox.showerror("Erreur", "Aucune fenêtre DOFUS détectée!\nLancez DOFUS d'abord.")
             return
         
+        # Charger la police personnalisée
+        load_custom_fonts()
+        
         # Configuration CustomTkinter
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
@@ -84,6 +96,19 @@ class ConfigWindow:
         style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
         style = (style | WS_EX_APPWINDOW) & ~WS_EX_TOOLWINDOW
         ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+        # Icône de la fenêtre (taskbar)
+        icon_path = os.path.join(_get_base_dir(), "DWM.ico")
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
+            # Aussi via Win32 pour fiabilité avec overrideredirect
+            WM_SETICON = 0x0080
+            icon_handle = ctypes.windll.user32.LoadImageW(
+                0, icon_path, 1, 0, 0, 0x00000010  # IMAGE_ICON + LR_LOADFROMFILE
+            )
+            if icon_handle:
+                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 0, icon_handle)  # ICON_SMALL
+                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 1, icon_handle)  # ICON_BIG
+        
         # Forcer au premier plan (topmost temporaire)
         self.root.attributes('-topmost', True)
         self.root.focus_force()
@@ -109,17 +134,17 @@ class ConfigWindow:
         
         ctk.CTkLabel(
             header_frame,
-            text="🎮  Configuration des Personnages",
-            font=ctk.CTkFont(size=18, weight="bold"),
+            text="Configuration des Personnages",
+            font=ctk.CTkFont(family="Fjalla One", size=20, weight="bold"),
             text_color="#ffffff"
         ).pack(side="left", padx=20, pady=15)
         
         # Bouton fermer (✕)
         ctk.CTkButton(
             header_frame,
-            text="✕",
+            text="X",
             command=self.root.destroy,
-            font=ctk.CTkFont(size=16, weight="bold"),
+            font=ctk.CTkFont(family="Fjalla One", size=17, weight="bold"),
             fg_color="transparent",
             hover_color="#a0325f",
             text_color="#ffffff",
@@ -143,7 +168,7 @@ class ConfigWindow:
         ctk.CTkLabel(
             info_frame,
             text="Assignez chaque fenêtre DOFUS à une position (ordre d'initiative) et indiquez sa classe.",
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(family="Fjalla One", size=13),
             text_color=COLORS["text_secondary"],
             wraplength=680
         ).pack(padx=15, pady=10)
@@ -179,8 +204,8 @@ class ConfigWindow:
             # Titre de la fenêtre détectée
             ctk.CTkLabel(
                 card,
-                text=f"🪟  {window.title}",
-                font=ctk.CTkFont(size=12),
+                text=window.title,
+                font=ctk.CTkFont(family="Fjalla One", size=13),
                 text_color=COLORS["text_primary"],
                 anchor="w"
             ).pack(fill="x", padx=15, pady=(12, 8))
@@ -193,7 +218,7 @@ class ConfigWindow:
             ctk.CTkLabel(
                 row_frame,
                 text="Position :",
-                font=ctk.CTkFont(size=11),
+                font=ctk.CTkFont(family="Fjalla One", size=12),
                 text_color=COLORS["text_secondary"]
             ).pack(side="left", padx=(0, 8))
             
@@ -208,7 +233,7 @@ class ConfigWindow:
                 values=positions,
                 width=180,
                 height=30,
-                font=ctk.CTkFont(size=11),
+                font=ctk.CTkFont(family="Fjalla One", size=12),
                 fg_color=COLORS["bg_input"],
                 button_color=COLORS["accent"],
                 button_hover_color=COLORS["accent_hover"],
@@ -225,7 +250,7 @@ class ConfigWindow:
             ctk.CTkLabel(
                 row_frame,
                 text="Classe :",
-                font=ctk.CTkFont(size=11),
+                font=ctk.CTkFont(family="Fjalla One", size=12),
                 text_color=COLORS["text_secondary"]
             ).pack(side="left", padx=(0, 8))
             
@@ -233,7 +258,7 @@ class ConfigWindow:
                 row_frame,
                 width=160,
                 height=30,
-                font=ctk.CTkFont(size=11),
+                font=ctk.CTkFont(family="Fjalla One", size=12),
                 fg_color=COLORS["bg_input"],
                 border_color=COLORS["border"],
                 text_color=COLORS["text_primary"],
@@ -258,8 +283,8 @@ class ConfigWindow:
         
         ctk.CTkLabel(
             hotkeys_card,
-            text="⌨️  Raccourcis de navigation",
-            font=ctk.CTkFont(size=14, weight="bold"),
+            text="Raccourcis de navigation",
+            font=ctk.CTkFont(family="Fjalla One", size=15, weight="bold"),
             text_color=COLORS["text_primary"],
             anchor="w"
         ).pack(fill="x", padx=15, pady=(12, 10))
@@ -271,7 +296,7 @@ class ConfigWindow:
         ctk.CTkLabel(
             next_frame,
             text="Personnage suivant :",
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=12),
             text_color=COLORS["text_secondary"],
             width=180,
             anchor="w"
@@ -281,7 +306,7 @@ class ConfigWindow:
             next_frame,
             width=120,
             height=30,
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=12),
             fg_color=COLORS["bg_input"],
             border_color=COLORS["border"],
             text_color=COLORS["text_primary"]
@@ -292,7 +317,7 @@ class ConfigWindow:
         ctk.CTkLabel(
             next_frame,
             text="(ex: tab, `, é, a)",
-            font=ctk.CTkFont(size=10),
+            font=ctk.CTkFont(family="Fjalla One", size=11),
             text_color=COLORS["text_secondary"]
         ).pack(side="left")
         
@@ -303,7 +328,7 @@ class ConfigWindow:
         ctk.CTkLabel(
             prev_frame,
             text="Personnage précédent :",
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=12),
             text_color=COLORS["text_secondary"],
             width=180,
             anchor="w"
@@ -313,7 +338,7 @@ class ConfigWindow:
             prev_frame,
             width=120,
             height=30,
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=12),
             fg_color=COLORS["bg_input"],
             border_color=COLORS["border"],
             text_color=COLORS["text_primary"]
@@ -324,7 +349,7 @@ class ConfigWindow:
         ctk.CTkLabel(
             prev_frame,
             text="(ex: shift+tab, \\, &, z)",
-            font=ctk.CTkFont(size=10),
+            font=ctk.CTkFont(family="Fjalla One", size=11),
             text_color=COLORS["text_secondary"]
         ).pack(side="left")
         
@@ -335,7 +360,7 @@ class ConfigWindow:
         ctk.CTkLabel(
             wheel_frame,
             text="Roue de sélection :",
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=12),
             text_color=COLORS["text_secondary"],
             width=180,
             anchor="w"
@@ -345,7 +370,7 @@ class ConfigWindow:
             wheel_frame,
             width=120,
             height=30,
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=12),
             fg_color=COLORS["bg_input"],
             border_color=COLORS["border"],
             text_color=COLORS["text_primary"]
@@ -356,15 +381,15 @@ class ConfigWindow:
         ctk.CTkLabel(
             wheel_frame,
             text="(ex: ctrl+alt+w)",
-            font=ctk.CTkFont(size=10),
+            font=ctk.CTkFont(family="Fjalla One", size=11),
             text_color=COLORS["text_secondary"]
         ).pack(side="left")
         
         # Hint
         ctk.CTkLabel(
             hotkeys_card,
-            text="💡 Pour les combinaisons, utilisez '+' (ex: shift+tab, ctrl+n)",
-            font=ctk.CTkFont(size=10),
+            text="Pour les combinaisons, utilisez '+' (ex: shift+tab, ctrl+n)",
+            font=ctk.CTkFont(family="Fjalla One", size=11),
             text_color=COLORS["accent"],
             anchor="w"
         ).pack(fill="x", padx=15, pady=(8, 12))
@@ -386,7 +411,7 @@ class ConfigWindow:
             button_frame,
             text="Annuler",
             command=self.root.destroy,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(family="Fjalla One", size=13),
             fg_color=COLORS["btn_cancel"],
             hover_color=COLORS["btn_cancel_hover"],
             text_color=COLORS["text_primary"],
@@ -399,9 +424,9 @@ class ConfigWindow:
             # Sauvegarder & Lancer
             ctk.CTkButton(
                 button_frame,
-                text="🚀 Sauvegarder & Lancer",
+                text="Sauvegarder & Lancer",
                 command=self._save_and_launch,
-                font=ctk.CTkFont(size=12, weight="bold"),
+                font=ctk.CTkFont(family="Fjalla One", size=13, weight="bold"),
                 fg_color=COLORS["accent"],
                 hover_color=COLORS["accent_hover"],
                 text_color="#ffffff",
@@ -413,9 +438,9 @@ class ConfigWindow:
             # Lancer
             ctk.CTkButton(
                 button_frame,
-                text="▶ Lancer",
+                text="Lancer",
                 command=self._launch_app,
-                font=ctk.CTkFont(size=11),
+                font=ctk.CTkFont(family="Fjalla One", size=12),
                 fg_color="#1a6b3c",
                 hover_color="#228b4a",
                 text_color="#ffffff",
@@ -425,13 +450,13 @@ class ConfigWindow:
             ).pack(side="right", padx=5, pady=14)
         
         # Sauvegarder (toujours présent)
-        save_text = "💾 Sauvegarder & Appliquer" if not self.allow_launch else "Sauvegarder"
+        save_text = "Sauvegarder & Appliquer" if not self.allow_launch else "Sauvegarder"
         save_width = 200 if not self.allow_launch else 120
         ctk.CTkButton(
             button_frame,
             text=save_text,
             command=self._save_config,
-            font=ctk.CTkFont(size=12, weight="bold") if not self.allow_launch else ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Fjalla One", size=13, weight="bold") if not self.allow_launch else ctk.CTkFont(family="Fjalla One", size=12),
             fg_color=COLORS["success"] if not self.allow_launch else "#1a6b3c",
             hover_color="#3bcc6e" if not self.allow_launch else "#228b4a",
             text_color="#000000" if not self.allow_launch else "#ffffff",
@@ -540,3 +565,4 @@ class ConfigWindow:
         """Sauvegarde la configuration avec message de confirmation."""
         if self._save_config_internal():
             messagebox.showinfo("Succès", "Configuration sauvegardée!")
+

@@ -1,4 +1,4 @@
-"""Roue de sélection radiale des personnages."""
+﻿"""Roue de sélection radiale des personnages."""
 import tkinter as tk
 import math
 import os
@@ -31,7 +31,7 @@ def _get_classes_dir() -> str:
     """Retourne le chemin du dossier classes/ (compatible .exe et .py)."""
     if getattr(sys, 'frozen', False):
         # Exécuté depuis un .exe PyInstaller
-        base = os.path.dirname(sys.executable)
+        base = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
     else:
         base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base, "classes")
@@ -248,13 +248,13 @@ class CharacterWheel:
 
             text_color = WHEEL_COLORS["text_hover"] if is_hovered else WHEEL_COLORS["text_normal"]
             font_weight = "bold" if (is_hovered or is_current) else "normal"
-            font_size = 11 if is_hovered else 10
+            font_size = 12 if is_hovered else 11
 
             text_id = self.canvas.create_text(
                 content_x, text_y_offset,
                 text=self.characters[i],
                 fill=text_color,
-                font=("Arial", font_size, font_weight),
+                font=("Fjalla One", font_size, font_weight),
                 anchor=tk.CENTER
             )
             self._text_ids.append(text_id)
@@ -294,7 +294,7 @@ class CharacterWheel:
                 cx, cy + ICON_SIZE // 2,
                 text=current_name,
                 fill=WHEEL_COLORS["center_text"],
-                font=("Arial", 10, "bold"),
+                font=("Fjalla One", 11, "bold"),
                 anchor=tk.CENTER
             )
         else:
@@ -303,14 +303,14 @@ class CharacterWheel:
                 cx, cy - 10,
                 text="Actuel",
                 fill=WHEEL_COLORS["center_border"],
-                font=("Arial", 8),
+                font=("Fjalla One", 9),
                 anchor=tk.CENTER
             )
             center_text = self.canvas.create_text(
                 cx, cy + 10,
                 text=current_name,
                 fill=WHEEL_COLORS["center_text"],
-                font=("Arial", 12, "bold"),
+                font=("Fjalla One", 13, "bold"),
                 anchor=tk.CENTER
             )
         self._center_ids.append(center_text)

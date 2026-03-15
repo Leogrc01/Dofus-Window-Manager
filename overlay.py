@@ -1,4 +1,4 @@
-"""Module pour l'overlay visuel affichant l'ordre des personnages."""
+﻿"""Module pour l'overlay visuel affichant l'ordre des personnages."""
 import tkinter as tk
 from typing import List, Optional
 import threading
@@ -17,7 +17,7 @@ class OverlayWindow:
         self.width = 855  # Augmenté de 800 à 1100 pour voir tous les noms
         self.height = 50
         self.opacity = 0.9
-        self.font_size = 14
+        self.font_size = 16
         
         # Données d'affichage
         self.characters: List[str] = []
@@ -158,7 +158,7 @@ class OverlayWindow:
                 arrow = tk.Label(
                     self.char_frame,
                     text="→",
-                    font=("Arial", self.font_size),
+                    font=("Fjalla One", self.font_size),
                     fg="#555555",
                     bg="#1a1a1a"
                 )
@@ -188,7 +188,7 @@ class OverlayWindow:
             label = tk.Label(
                 self.char_frame,
                 text=text,
-                font=("Arial", self.font_size, font_weight),
+                font=("Fjalla One", self.font_size, font_weight),
                 fg=fg_color,
                 bg=bg_color,
                 padx=8,

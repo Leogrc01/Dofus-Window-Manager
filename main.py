@@ -1,4 +1,5 @@
 """Point d'entrée principal de l'application DOFUS Window Switcher."""
+import os
 import sys
 import threading
 import time
@@ -13,6 +14,14 @@ from hotkey_manager import HotkeyManager
 from overlay import OverlayWindow
 from character_wheel import CharacterWheel
 from config_manager import ConfigManager
+from font_loader import load_custom_fonts
+
+
+def _get_base_dir() -> str:
+    """Retourne le répertoire de base (compatible PyInstaller)."""
+    if getattr(sys, 'frozen', False):
+        return getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 class DofusWindowSwitcher:
@@ -39,16 +48,17 @@ class DofusWindowSwitcher:
         
     def initialize(self):
         """Initialise l'application."""
-        print("🎮 DOFUS Window Switcher - Initialisation...")
+        load_custom_fonts()
+        print("DOFUS Window Switcher - Initialisation...")
         
         # Charger la configuration
         config = self.config_manager.load()
         
         if config:
-            print("✓ Configuration chargée")
+            print("Configuration chargée")
             self._load_config(config)
         else:
-            print("ℹ Premier lancement - Configuration initiale")
+            print("Premier lancement - Configuration initiale")
             self._first_time_setup()
         
         # Créer l'overlay
@@ -61,12 +71,12 @@ class DofusWindowSwitcher:
         
         # Enregistrer les hotkeys
         self.hotkey_manager.register_all()
-        print("✓ Raccourcis clavier enregistrés")
+        print("Raccourcis clavier enregistrés")
         
         # Mettre à jour l'overlay
         self._update_overlay()
         
-        print("✓ Initialisation terminée")
+        print("Initialisation terminée")
         print("\nRaccourcis:")
         print("  F1-F8      : Switch vers le personnage 1-8")
         print("  `          : Personnage suivant")
@@ -78,15 +88,15 @@ class DofusWindowSwitcher:
     
     def _first_time_setup(self):
         """Configuration initiale au premier lancement."""
-        print("\n🔍 Détection des fenêtres DOFUS...")
+        print("\nDétection des fenêtres DOFUS...")
         windows = self.detector.detect_windows()
         
         if not windows:
-            print("⚠ Aucune fenêtre DOFUS détectée!")
+            print("Aucune fenêtre DOFUS détectée!")
             print("  Assurez-vous que DOFUS est lancé et réessayez.")
             return
         
-        print(f"✓ {len(windows)} fenêtre(s) DOFUS détectée(s)")
+        print(f"{len(windows)} fenêtre(s) DOFUS détectée(s)")
         
         # Créer une configuration par défaut avec les fenêtres détectées
         for i, window in enumerate(windows[:8]):  # Max 8 fenêtres
@@ -95,7 +105,7 @@ class DofusWindowSwitcher:
             self.window_manager.add_character(char_name, window.hwnd, i)
             print(f"  [{i+1}] {window.title} → {char_name}")
         
-        print("\n💡 Pour personnaliser les noms, utilisez Ctrl+Alt+C ou lancez configure.py")
+        print("\nPour personnaliser les noms, utilisez Ctrl+Alt+C ou lancez configure.py")
     
     def _extract_character_class(self, title: str, fallback_number: int) -> str:
         """Extrait le nom de la classe depuis le titre de la fenêtre DOFUS."""
@@ -165,7 +175,7 @@ class DofusWindowSwitcher:
     
     def reload_config(self):
         """Recharge la configuration depuis le fichier sans redémarrer l'app."""
-        print("🔄 Rechargement de la configuration...")
+        print("Rechargement de la configuration...")
         config = self.config_manager.load()
         
         if config:
@@ -173,7 +183,7 @@ class DofusWindowSwitcher:
             self._update_overlay()
             print("✓ Configuration rechargée avec succès")
         else:
-            print("⚠ Impossible de recharger la configuration")
+            print("Impossible de recharger la configuration")
     
     def _open_config(self):
         """Ouvre la fenêtre de configuration pour modifier l'ordre."""
@@ -207,7 +217,7 @@ class DofusWindowSwitcher:
             # Recharger pour mettre à jour l'overlay
             self.reload_config()
             
-            print(f"✓ Raccourcis mis à jour: Suivant='{hotkeys.get('next_key')}', Précédent='{hotkeys.get('previous_key')}'")
+            print(f"Raccourcis mis à jour: Suivant='{hotkeys.get('next_key')}', Précédent='{hotkeys.get('previous_key')}'")
         
         # Récupérer les hotkeys actuels et la config du window manager
         current_hotkeys = self.hotkey_manager.to_dict()
@@ -229,10 +239,14 @@ class DofusWindowSwitcher:
     
     def _create_tray_icon(self):
         """Crée l'icône dans la barre système."""
-        # Créer une icône simple
-        image = Image.new('RGB', (64, 64), color='#1a1a1a')
-        draw = ImageDraw.Draw(image)
-        draw.rectangle([16, 16, 48, 48], fill='#8b2252', outline='#e0e0e0')
+        icon_path = os.path.join(_get_base_dir(), "DWM.ico")
+        if os.path.exists(icon_path):
+            image = Image.open(icon_path)
+        else:
+            # Fallback si l'icône n'est pas trouvée
+            image = Image.new('RGB', (64, 64), color='#1a1a1a')
+            draw = ImageDraw.Draw(image)
+            draw.rectangle([16, 16, 48, 48], fill='#8b2252', outline='#e0e0e0')
         
         menu = pystray.Menu(
             item('DOFUS Window Switcher', lambda: None, enabled=False),
@@ -277,7 +291,7 @@ class DofusWindowSwitcher:
                 self.overlay.run()
             else:
                 # Si l'overlay n'a pas pu être créé, garder l'app en vie
-                print("\n⚠ Overlay non disponible - Mode sans GUI")
+                print("\nOverlay non disponible - Mode sans GUI")
                 print("Les raccourcis clavier fonctionnent toujours.")
                 print("Appuyez sur Ctrl+Alt+Q pour quitter\n")
                 while self.running:
@@ -331,7 +345,7 @@ def main():
         app.initialize()
         app.run()
     except Exception as e:
-        print(f"\n❌ Erreur fatale: {e}")
+        print(f"\nErreur fatale: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
