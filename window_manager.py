@@ -80,28 +80,33 @@ class WindowManager:
         """Switch vers le personnage suivant dans l'ordre d'initiative."""
         if not self.characters:
             return False
-            
-        self.current_index = (self.current_index + 1) % len(self.characters)
-        char = self.characters[self.current_index]
         
-        if self.detector.is_window_valid(char.hwnd):
-            return self.detector.focus_window(char.hwnd)
-        else:
-            # Si la fenêtre n'est plus valide, essayer la suivante
-            return self.switch_to_next()
+        start_index = self.current_index
+        for _ in range(len(self.characters)):
+            self.current_index = (self.current_index + 1) % len(self.characters)
+            char = self.characters[self.current_index]
+            if self.detector.is_window_valid(char.hwnd):
+                return self.detector.focus_window(char.hwnd)
+        
+        # Aucune fenêtre valide trouvée
+        self.current_index = start_index
+        return False
     
     def switch_to_previous(self) -> bool:
         """Switch vers le personnage précédent dans l'ordre d'initiative."""
         if not self.characters:
             return False
-            
-        self.current_index = (self.current_index - 1) % len(self.characters)
-        char = self.characters[self.current_index]
         
-        if self.detector.is_window_valid(char.hwnd):
-            return self.detector.focus_window(char.hwnd)
-        else:
-            return self.switch_to_previous()
+        start_index = self.current_index
+        for _ in range(len(self.characters)):
+            self.current_index = (self.current_index - 1) % len(self.characters)
+            char = self.characters[self.current_index]
+            if self.detector.is_window_valid(char.hwnd):
+                return self.detector.focus_window(char.hwnd)
+        
+        # Aucune fenêtre valide trouvée
+        self.current_index = start_index
+        return False
     
     def get_current_character(self) -> Optional[CharacterWindow]:
         """Retourne le personnage actuellement actif."""

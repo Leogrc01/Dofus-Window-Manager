@@ -13,6 +13,7 @@ class HotkeyManager:
     DEFAULT_TOGGLE_OVERLAY_KEY = 'ctrl+alt+o'
     DEFAULT_OPEN_CONFIG_KEY = 'ctrl+alt+c'
     DEFAULT_QUIT_KEY = 'ctrl+alt+q'
+    DEFAULT_WHEEL_KEY = 'ctrl+alt+w'
     
     def __init__(self, window_manager: WindowManager):
         self.window_manager = window_manager
@@ -22,6 +23,7 @@ class HotkeyManager:
         self.on_toggle_overlay: Callable = lambda: None
         self.on_open_config: Callable = lambda: None
         self.on_quit: Callable = lambda: None
+        self.on_toggle_wheel: Callable = lambda: None
         
         # Configuration des touches
         self.position_keys = self.DEFAULT_POSITION_KEYS.copy()
@@ -30,6 +32,7 @@ class HotkeyManager:
         self.toggle_overlay_key = self.DEFAULT_TOGGLE_OVERLAY_KEY
         self.open_config_key = self.DEFAULT_OPEN_CONFIG_KEY
         self.quit_key = self.DEFAULT_QUIT_KEY
+        self.wheel_key = self.DEFAULT_WHEEL_KEY
         
     def register_all(self):
         """Enregistre tous les raccourcis clavier et souris."""
@@ -77,6 +80,13 @@ class HotkeyManager:
             self.registered_hotkeys.append(self.quit_key)
         except Exception as e:
             print(f"Erreur lors de l'enregistrement de {self.quit_key}: {e}")
+        
+        # Raccourci pour la roue de sélection
+        try:
+            keyboard.add_hotkey(self.wheel_key, self._toggle_wheel)
+            self.registered_hotkeys.append(self.wheel_key)
+        except Exception as e:
+            print(f"Erreur lors de l'enregistrement de {self.wheel_key}: {e}")
     
     def unregister_all(self):
         """Désenregistre tous les raccourcis clavier."""
@@ -110,6 +120,10 @@ class HotkeyManager:
     def _quit(self):
         """Callback pour quitter l'application."""
         self.on_quit()
+    
+    def _toggle_wheel(self):
+        """Callback pour afficher/masquer la roue de sélection."""
+        self.on_toggle_wheel()
     
     def set_position_keys(self, keys: List[str]):
         """Configure les touches pour les positions."""
@@ -150,7 +164,8 @@ class HotkeyManager:
             "previous_key": self.previous_key,
             "toggle_overlay_key": self.toggle_overlay_key,
             "open_config_key": self.open_config_key,
-            "quit_key": self.quit_key
+            "quit_key": self.quit_key,
+            "wheel_key": self.wheel_key
         }
     
     def from_dict(self, data: Dict):
@@ -161,3 +176,4 @@ class HotkeyManager:
         self.toggle_overlay_key = data.get("toggle_overlay_key", self.DEFAULT_TOGGLE_OVERLAY_KEY)
         self.open_config_key = data.get("open_config_key", self.DEFAULT_OPEN_CONFIG_KEY)
         self.quit_key = data.get("quit_key", self.DEFAULT_QUIT_KEY)
+        self.wheel_key = data.get("wheel_key", self.DEFAULT_WHEEL_KEY)

@@ -43,7 +43,7 @@ class OverlayWindow:
             self.root.attributes('-alpha', self.opacity)
             self.root.overrideredirect(True)  # Pas de bordure de fenêtre
             
-            # Fond semi-transparent
+            # Fond sombre (palette Dofus 3)
             self.root.configure(bg='#1a1a1a')
             
             # Frame principal
@@ -159,28 +159,28 @@ class OverlayWindow:
                     self.char_frame,
                     text="→",
                     font=("Arial", self.font_size),
-                    fg="#666666",
+                    fg="#555555",
                     bg="#1a1a1a"
                 )
                 arrow.pack(side=tk.LEFT, padx=2)
                 self.arrows.append(arrow)
             
-            # Déterminer le style du label
+            # Déterminer le style du label (palette Dofus 3)
             if i == self.current_index:
-                # Personnage actif (surligné en vert)
-                fg_color = "#00ff00"
-                bg_color = "#2a2a2a"
+                # Personnage actif (accent bordeaux)
+                fg_color = "#ffffff"
+                bg_color = "#8b2252"
                 text = f"[{char_name}]"
                 font_weight = "bold"
             elif i == self.next_index:
-                # Prochain personnage (orange)
-                fg_color = "#ffaa00"
+                # Prochain personnage (doré)
+                fg_color = "#fbbf24"
                 bg_color = "#1a1a1a"
                 text = char_name
                 font_weight = "bold"
             else:
-                # Autres personnages (gris)
-                fg_color = "#aaaaaa"
+                # Autres personnages (gris discret)
+                fg_color = "#777777"
                 bg_color = "#1a1a1a"
                 text = char_name
                 font_weight = "normal"

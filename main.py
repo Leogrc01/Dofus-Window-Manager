@@ -11,6 +11,7 @@ from window_detector import WindowDetector
 from window_manager import WindowManager
 from hotkey_manager import HotkeyManager
 from overlay import OverlayWindow
+from character_wheel import CharacterWheel
 from config_manager import ConfigManager
 
 
@@ -23,6 +24,7 @@ class DofusWindowSwitcher:
         self.window_manager = WindowManager(self.detector)
         self.hotkey_manager = HotkeyManager(self.window_manager)
         self.overlay = OverlayWindow()
+        self.wheel = CharacterWheel()
         self.config_manager = ConfigManager()
         
         # System tray
@@ -33,6 +35,7 @@ class DofusWindowSwitcher:
         self.hotkey_manager.on_toggle_overlay = self._toggle_overlay
         self.hotkey_manager.on_quit = self.quit
         self.hotkey_manager.on_open_config = self._open_config
+        self.hotkey_manager.on_toggle_wheel = self._toggle_wheel
         
     def initialize(self):
         """Initialise l'application."""
@@ -51,6 +54,11 @@ class DofusWindowSwitcher:
         # Créer l'overlay
         self.overlay.create_window()
         
+        # Créer la roue de sélection (sur le même root que l'overlay)
+        if self.overlay.root:
+            self.wheel.create_window(self.overlay.root)
+            self.wheel.on_select = self._on_wheel_select
+        
         # Enregistrer les hotkeys
         self.hotkey_manager.register_all()
         print("✓ Raccourcis clavier enregistrés")
@@ -65,6 +73,7 @@ class DofusWindowSwitcher:
         print("  \\          : Personnage précédent")
         print("  Ctrl+Alt+O : Afficher/masquer l'overlay")
         print("  Ctrl+Alt+C : Modifier la configuration")
+        print("  Ctrl+Alt+W : Roue de sélection")
         print("  Ctrl+Alt+Q : Quitter")
     
     def _first_time_setup(self):
@@ -140,6 +149,20 @@ class DofusWindowSwitcher:
         self.overlay.toggle()
         self._save_config()
     
+    def _toggle_wheel(self):
+        """Affiche/masque la roue de sélection."""
+        if not self.overlay.root:
+            return
+        char_list = self.window_manager.get_character_list()
+        current_index = self.window_manager.current_index
+        # Passer par root.after pour rester thread-safe (appelé depuis thread keyboard)
+        self.overlay.root.after(0, lambda: self.wheel.toggle(char_list, current_index))
+    
+    def _on_wheel_select(self, position: int):
+        """Callback quand un personnage est sélectionné via la roue."""
+        self.window_manager.switch_to_position(position)
+        self._update_overlay()
+    
     def reload_config(self):
         """Recharge la configuration depuis le fichier sans redémarrer l'app."""
         print("🔄 Rechargement de la configuration...")
@@ -172,6 +195,8 @@ class DofusWindowSwitcher:
                 self.hotkey_manager.next_key = hotkeys["next_key"]
             if hotkeys.get("previous_key"):
                 self.hotkey_manager.previous_key = hotkeys["previous_key"]
+            if hotkeys.get("wheel_key"):
+                self.hotkey_manager.wheel_key = hotkeys["wheel_key"]
             
             # Ré-enregistrer les hotkeys avec les nouvelles touches
             self.hotkey_manager.register_all()
@@ -207,7 +232,7 @@ class DofusWindowSwitcher:
         # Créer une icône simple
         image = Image.new('RGB', (64, 64), color='#1a1a1a')
         draw = ImageDraw.Draw(image)
-        draw.rectangle([16, 16, 48, 48], fill='#00ff00', outline='#ffffff')
+        draw.rectangle([16, 16, 48, 48], fill='#8b2252', outline='#e0e0e0')
         
         menu = pystray.Menu(
             item('DOFUS Window Switcher', lambda: None, enabled=False),

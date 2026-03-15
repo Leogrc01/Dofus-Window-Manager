@@ -28,7 +28,8 @@ def save_configuration(characters, hotkeys=None):
             "previous_key": hotkeys.get("previous_key", "\\"),
             "toggle_overlay_key": "ctrl+alt+o",
             "open_config_key": "ctrl+alt+c",
-            "quit_key": "ctrl+alt+q"
+            "quit_key": "ctrl+alt+q",
+            "wheel_key": hotkeys.get("wheel_key", "ctrl+alt+w")
         },
         "overlay": {
             "enabled": True,
