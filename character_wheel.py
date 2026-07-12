@@ -1,10 +1,10 @@
 ﻿"""Roue de sélection radiale des personnages."""
 import tkinter as tk
 import math
-import os
-import sys
-from typing import List, Optional, Callable, Dict
-from PIL import Image, ImageTk
+from typing import List, Optional, Callable
+from PIL import ImageTk
+
+from class_icons import get_class_icon
 
 
 # Palette Dofus 3
@@ -26,18 +26,6 @@ INNER_RADIUS = 60
 WHEEL_SIZE = (OUTER_RADIUS + 40) * 2  # Marge pour le texte
 ICON_SIZE = 36  # Taille des icônes de classe (pixels)
 
-# Chemin vers le dossier des icônes de classe
-def _get_classes_dir() -> str:
-    """Retourne le chemin du dossier classes/ (compatible .exe et .py)."""
-    if getattr(sys, 'frozen', False):
-        # Exécuté depuis un .exe PyInstaller
-        base = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, "classes")
-
-CLASSES_DIR = _get_classes_dir()
-
 
 class CharacterWheel:
     """Roue radiale de sélection de personnage."""
@@ -56,8 +44,7 @@ class CharacterWheel:
         # Callback pour switcher
         self.on_select: Optional[Callable[[int], None]] = None
 
-        # Cache des icônes (garder les références pour éviter le garbage collection)
-        self._icon_cache: Dict[str, ImageTk.PhotoImage] = {}
+        # Références des icônes affichées (le cache global est dans class_icons)
         self._active_icons: List[ImageTk.PhotoImage] = []
 
         # IDs des éléments canvas pour le rafraîchissement
@@ -163,24 +150,7 @@ class CharacterWheel:
 
     def _load_class_icon(self, class_name: str) -> Optional[ImageTk.PhotoImage]:
         """Charge l'icône d'une classe depuis le dossier classes/."""
-        # Normaliser le nom (minuscule, sans accents)
-        key = class_name.lower().strip()
-        
-        if key in self._icon_cache:
-            return self._icon_cache[key]
-        
-        icon_path = os.path.join(CLASSES_DIR, f"{key}.png")
-        if not os.path.exists(icon_path):
-            return None
-        
-        try:
-            img = Image.open(icon_path)
-            img = img.resize((ICON_SIZE, ICON_SIZE), Image.LANCZOS)
-            photo = ImageTk.PhotoImage(img)
-            self._icon_cache[key] = photo
-            return photo
-        except Exception:
-            return None
+        return get_class_icon(class_name, ICON_SIZE)
 
     def _draw_wheel(self):
         """Dessine la roue complète."""
@@ -204,17 +174,7 @@ class CharacterWheel:
 
         # Dessiner les secteurs
         for i in range(n):
-            is_hovered = (i == self.hovered_index)
-            is_current = (i == self.current_index)
-
-            if is_hovered:
-                fill = WHEEL_COLORS["sector_hover"]
-            elif is_current:
-                fill = "#3d1a2e"  # Fond légèrement teinté bordeaux pour le perso actif
-            else:
-                fill = WHEEL_COLORS["sector_normal"]
-            outline = WHEEL_COLORS["center_border"] if is_current else WHEEL_COLORS["sector_border"]
-            outline_width = 3 if is_current else 1
+            fill, outline, outline_width, text_color = self._sector_style(i)
 
             # Arc (tkinter : extent négatif = sens horaire)
             tk_start = self._sector_to_tkinter_angle(i, n)
@@ -246,15 +206,14 @@ class CharacterWheel:
                 # Pas d'icône : texte centré normalement
                 text_y_offset = content_y
 
-            text_color = WHEEL_COLORS["text_hover"] if is_hovered else WHEEL_COLORS["text_normal"]
-            font_weight = "bold" if (is_hovered or is_current) else "normal"
-            font_size = 12 if is_hovered else 11
-
+            # Police fixe (le survol ne change que les couleurs, pas la taille :
+            # évite que le texte "saute" et permet un refresh léger via itemconfig)
+            font_weight = "bold" if i == self.current_index else "normal"
             text_id = self.canvas.create_text(
                 content_x, text_y_offset,
                 text=self.characters[i],
                 fill=text_color,
-                font=("Fjalla One", font_size, font_weight),
+                font=("Fjalla One", 11, font_weight),
                 anchor=tk.CENTER
             )
             self._text_ids.append(text_id)
@@ -315,6 +274,31 @@ class CharacterWheel:
             )
         self._center_ids.append(center_text)
 
+    def _sector_style(self, i: int) -> tuple:
+        """Retourne (fill, outline, outline_width, text_color) pour un secteur."""
+        is_hovered = (i == self.hovered_index)
+        is_current = (i == self.current_index)
+
+        if is_hovered:
+            fill = WHEEL_COLORS["sector_hover"]
+        elif is_current:
+            fill = "#3d1a2e"  # Fond légèrement teinté bordeaux pour le perso actif
+        else:
+            fill = WHEEL_COLORS["sector_normal"]
+        outline = WHEEL_COLORS["center_border"] if is_current else WHEEL_COLORS["sector_border"]
+        outline_width = 3 if is_current else 1
+        text_color = WHEEL_COLORS["text_hover"] if is_hovered else WHEEL_COLORS["text_normal"]
+        return fill, outline, outline_width, text_color
+
+    def _apply_sector_style(self, i: int):
+        """Applique le style d'un secteur sans redessiner toute la roue."""
+        if not (0 <= i < len(self._sector_ids)):
+            return
+        fill, outline, outline_width, text_color = self._sector_style(i)
+        self.canvas.itemconfig(self._sector_ids[i], fill=fill, outline=outline, width=outline_width)
+        if i < len(self._text_ids):
+            self.canvas.itemconfig(self._text_ids[i], fill=text_color)
+
     def _get_hovered_sector(self, event_x: int, event_y: int) -> int:
         """Calcule quel secteur est sous le curseur."""
         cx = WHEEL_SIZE // 2
@@ -346,8 +330,11 @@ class CharacterWheel:
         """Gère le mouvement de la souris pour surligner le secteur."""
         new_hover = self._get_hovered_sector(event.x, event.y)
         if new_hover != self.hovered_index:
+            old_hover = self.hovered_index
             self.hovered_index = new_hover
-            self._draw_wheel()
+            # Ne rafraîchir que les deux secteurs concernés (pas de flicker)
+            self._apply_sector_style(old_hover)
+            self._apply_sector_style(new_hover)
 
     def _on_click(self, event):
         """Gère le clic gauche pour sélectionner un personnage."""

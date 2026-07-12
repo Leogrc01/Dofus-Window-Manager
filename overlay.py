@@ -1,7 +1,13 @@
 ﻿"""Module pour l'overlay visuel affichant l'ordre des personnages."""
 import tkinter as tk
 from typing import List, Optional
-import threading
+
+from class_icons import get_class_icon
+
+ICON_SIZE = 20  # Taille des icônes de classe dans l'overlay
+BG_COLOR = "#1a1a1a"          # Fond du bandeau (palette Dofus 3)
+TRANSPARENT_KEY = "#010101"   # Couleur-clé de transparence (comme la roue)
+CORNER_RADIUS = 14            # Rayon des coins arrondis
 
 
 class OverlayWindow:
@@ -9,6 +15,8 @@ class OverlayWindow:
     
     def __init__(self):
         self.root: Optional[tk.Tk] = None
+        self.canvas: Optional[tk.Canvas] = None
+        self._bg_rect: Optional[int] = None
         self.visible = True
         
         # Configuration par défaut
@@ -43,15 +51,25 @@ class OverlayWindow:
             self.root.attributes('-alpha', self.opacity)
             self.root.overrideredirect(True)  # Pas de bordure de fenêtre
             
-            # Fond sombre (palette Dofus 3)
-            self.root.configure(bg='#1a1a1a')
-            
-            # Frame principal
-            self.main_frame = tk.Frame(self.root, bg='#1a1a1a')
-            self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-            
+            # Coins arrondis : le fond de la fenêtre est transparent (couleur-clé),
+            # un rectangle arrondi est dessiné sur le canvas sous les widgets
+            self.root.configure(bg=TRANSPARENT_KEY)
+            self.root.wm_attributes('-transparentcolor', TRANSPARENT_KEY)
+
+            self.canvas = tk.Canvas(
+                self.root,
+                bg=TRANSPARENT_KEY,
+                highlightthickness=0
+            )
+            self.canvas.pack(fill=tk.BOTH, expand=True)
+            self._bg_rect: Optional[int] = None
+
+            # Frame principal, posé sur le canvas
+            self.main_frame = tk.Frame(self.canvas, bg=BG_COLOR)
+            self.canvas.create_window(10, 10, window=self.main_frame, anchor='nw')
+
             # Frame pour les personnages
-            self.char_frame = tk.Frame(self.main_frame, bg='#1a1a1a')
+            self.char_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
             self.char_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             
             # Binding pour déplacer la fenêtre
@@ -93,109 +111,94 @@ class OverlayWindow:
         if self.root:
             self.root.after(0, self._refresh_display)
     
-    def _calculate_optimal_width(self) -> int:
-        """Calcule la largeur optimale en fonction du nombre de personnages."""
-        if not self.characters:
-            return 200  # Largeur minimale
-        
-        # Estimer la largeur nécessaire
-        # Chaque caractère = ~8-10px selon la police
-        # Padding = 8px de chaque côté = 16px
-        # Crochets pour le perso actif = ~2 caractères supplémentaires
-        # Flèche = ~20px
-        
-        char_width_estimate = 9  # pixels par caractère
-        padding_per_label = 16  # padx=8 de chaque côté
-        arrow_width = 20  # largeur de la flèche + espacement
-        bracket_chars = 2  # crochets autour du perso actif
-        
-        total_width = 20  # padding du main_frame (10px de chaque côté)
-        
-        for i, char_name in enumerate(self.characters):
-            # Longueur du nom + crochets si c'est le perso actif
-            name_length = len(char_name)
-            if i == self.current_index:
-                name_length += bracket_chars
-            
-            # Largeur pour ce label
-            total_width += (name_length * char_width_estimate) + padding_per_label
-            
-            # Ajouter la flèche sauf pour le premier
-            if i > 0:
-                total_width += arrow_width
-        
-        # Ajouter une marge de sécurité de 10%
-        total_width = int(total_width * 1.1)
-        
-        # Limites min/max
-        min_width = 200
-        max_width = 1200
-        
-        return max(min_width, min(total_width, max_width))
-    
     def _refresh_display(self):
         """Rafraîchit l'affichage (doit être appelé depuis le thread GUI)."""
         # Supprimer les anciens widgets
         for widget in self.char_frame.winfo_children():
             widget.destroy()
-        
+
         self.labels.clear()
         self.arrows.clear()
-        
+
         if not self.characters:
             return
-        
-        # Calculer et appliquer la largeur optimale
-        optimal_width = self._calculate_optimal_width()
-        if self.root and optimal_width != self.width:
-            self.width = optimal_width
-            self.root.geometry(f"{self.width}x{self.height}+{self.position_x}+{self.position_y}")
-        
+
         # Créer les labels pour chaque personnage
         for i, char_name in enumerate(self.characters):
-            # Flèche entre les personnages
+            # Chevron discret entre les personnages
             if i > 0:
                 arrow = tk.Label(
                     self.char_frame,
-                    text="→",
-                    font=("Fjalla One", self.font_size),
-                    fg="#555555",
+                    text="›",
+                    font=("Fjalla One", max(self.font_size - 2, 8)),
+                    fg="#4a4a4a",
                     bg="#1a1a1a"
                 )
                 arrow.pack(side=tk.LEFT, padx=2)
                 self.arrows.append(arrow)
-            
+
             # Déterminer le style du label (palette Dofus 3)
             if i == self.current_index:
-                # Personnage actif (accent bordeaux)
+                # Personnage actif : chip bordeaux (le fond suffit, pas de crochets)
                 fg_color = "#ffffff"
                 bg_color = "#8b2252"
-                text = f"[{char_name}]"
                 font_weight = "bold"
             elif i == self.next_index:
                 # Prochain personnage (doré)
                 fg_color = "#fbbf24"
                 bg_color = "#1a1a1a"
-                text = char_name
                 font_weight = "bold"
             else:
                 # Autres personnages (gris discret)
                 fg_color = "#777777"
                 bg_color = "#1a1a1a"
-                text = char_name
                 font_weight = "normal"
-            
+
+            icon = get_class_icon(char_name, ICON_SIZE)
             label = tk.Label(
                 self.char_frame,
-                text=text,
+                text=f" {char_name}" if icon else char_name,  # petit espace icône/texte
+                image=icon,
+                compound=tk.LEFT if icon else tk.NONE,
                 font=("Fjalla One", self.font_size, font_weight),
                 fg=fg_color,
                 bg=bg_color,
                 padx=8,
                 pady=4
             )
+            if icon:
+                label.image = icon  # Garder la référence (anti garbage collection)
             label.pack(side=tk.LEFT)
             self.labels.append(label)
+
+        # Ajuster la fenêtre à la taille réellement requise par les widgets
+        self.root.update_idletasks()
+        required_width = self.main_frame.winfo_reqwidth() + 20   # marge autour du frame
+        required_height = self.main_frame.winfo_reqheight() + 20
+        if required_width != self.width or required_height != self.height:
+            self.width = required_width
+            self.height = required_height
+            self.root.geometry(f"{self.width}x{self.height}+{self.position_x}+{self.position_y}")
+        self._draw_background(self.width, self.height)
+
+    def _draw_background(self, width: int, height: int):
+        """Dessine le fond arrondi du bandeau sous les widgets."""
+        if not self.canvas:
+            return
+        if self._bg_rect is not None:
+            self.canvas.delete(self._bg_rect)
+        r = CORNER_RADIUS
+        # Polygone lissé : les sommets doublés autour des coins donnent l'arrondi
+        points = [
+            r, 0, width - r, 0, width, 0,
+            width, r, width, height - r, width, height,
+            width - r, height, r, height, 0, height,
+            0, height - r, 0, r, 0, 0,
+        ]
+        self._bg_rect = self.canvas.create_polygon(
+            points, smooth=True, fill=BG_COLOR, outline=""
+        )
+        self.canvas.tag_lower(self._bg_rect)
     
     def show(self):
         """Affiche l'overlay."""
