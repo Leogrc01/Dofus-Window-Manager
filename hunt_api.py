@@ -14,11 +14,13 @@ import urllib.parse
 import urllib.request
 from typing import Dict, List, Optional
 
+from app_paths import get_data_dir
+
 API_BASE = "https://api.dofusdb.fr"
 USER_AGENT = "DofusWindowManager-HuntHelper/1.0"
 TIMEOUT = 10  # secondes
 
-CACHE_FILE = "hunt_clues_cache.json"
+CACHE_FILE = os.path.join(get_data_dir(), "hunt_clues_cache.json")
 CACHE_MAX_AGE = 7 * 24 * 3600  # 7 jours
 
 # Enum des directions de l'API (DirectionsEnum Dofus)

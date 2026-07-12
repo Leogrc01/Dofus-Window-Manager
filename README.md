@@ -75,6 +75,12 @@ python main.py
 - **Clic droit** sur un nom → le marquer **mort/absent** (barré et grisé) : la rotation suivant/précédent le saute, re-clic droit pour le réactiver. Les touches F1-F8 continuent de fonctionner même sur un perso marqué.
 - **Glisser** le bandeau pour le déplacer (un déplacement n'est jamais interprété comme un clic)
 
+### Démarrage & mises à jour
+
+- **Démarrer avec Windows** : activable d'un clic dans le menu de l'icône system tray (clé Run du registre utilisateur, réversible au même endroit).
+- **Vérification de mise à jour** : au lancement, l'app compare sa version à la dernière release GitHub et affiche une notification si une plus récente existe (silencieux hors ligne).
+- **Données** : `config.json` et le cache de chasse vivent dans `%APPDATA%\DofusWindowManager\` (migration automatique depuis l'ancien emplacement à côté de l'exe).
+
 ### Comment quitter
 
 - **Raccourci** : `Ctrl+Alt+Q`
@@ -104,6 +110,12 @@ Plus besoin de Ganymède ou d'un site externe : **Ctrl+Alt+H** ouvre un petit pa
 - « Introuvable (≤ 10 maps) » : l'indice n'existe pas dans cette direction, comme en jeu
 - La liste des indices est mise en cache 7 jours (`hunt_clues_cache.json`) — première ouverture avec connexion requise
 - **Échap** ferme le panneau
+
+**Historique & retour arrière** : chaque étape résolue s'ajoute à la liste « Étapes » ; le bouton **↩ Retour** annule la dernière étape et restaure la position de départ (pratique quand on s'est trompé de direction).
+
+**Étapes phorreur** : les phorreurs sont invisibles pour les bases de données (objets propres à chaque joueur) — aucun outil ne peut les localiser. Le bouton **Étape phorreur** trace l'étape dans l'historique ; cherchez le phorreur en jeu puis mettez la position à jour (la **molette** sur les champs X/Y fait ±1, pratique en marchant map par map).
+
+**Auto-pilote (optionnel)** : cochez « Écrire /travel dans le jeu » pour que la commande soit tapée directement dans le chat de la fenêtre active (focus + frappe + Entrée) au lieu d'être copiée. Équivalent de l'auto-pilote de Ganymède — désactivé par défaut. Les options sont mémorisées.
 
 ### Modification de la configuration en temps réel
 

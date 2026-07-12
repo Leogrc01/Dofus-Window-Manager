@@ -1,9 +1,18 @@
 """Fenêtre d'assistant de chasse au trésor (données DofusDB)."""
 import threading
 import tkinter as tk
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import hunt_api
+
+# Flèches d'affichage pour l'historique
+DIRECTION_ARROWS = {
+    hunt_api.DIRECTION_NORTH: "▲",
+    hunt_api.DIRECTION_WEST: "◄",
+    hunt_api.DIRECTION_EAST: "►",
+    hunt_api.DIRECTION_SOUTH: "▼",
+}
+MAX_HISTORY_DISPLAY = 6
 
 # Palette Dofus 3
 COLORS = {
@@ -45,6 +54,14 @@ class HuntHelper:
         self.direction: Optional[int] = None
         self._suggestions: List[Dict] = []
         self._loading = False
+        self.history: List[Dict] = []  # Étapes de la chasse en cours
+
+        # Options (persistées dans la config)
+        self.auto_copy = True
+        self.auto_travel = False
+
+        # Callback pour écrire /travel directement dans le jeu (auto-pilote)
+        self.on_travel_command: Optional[Callable[[str], None]] = None
 
         # Widgets
         self.x_entry: Optional[tk.Entry] = None
@@ -55,6 +72,9 @@ class HuntHelper:
         self.status_label: Optional[tk.Label] = None
         self.direction_buttons: Dict[int, tk.Button] = {}
         self.autocopy_var: Optional[tk.BooleanVar] = None
+        self.autotravel_var: Optional[tk.BooleanVar] = None
+        self.history_list: Optional[tk.Listbox] = None
+        self.history_frame: Optional[tk.Frame] = None
 
     # ------------------------------------------------------------------
     # Création de la fenêtre
@@ -96,6 +116,11 @@ class HuntHelper:
         self.x_entry.pack(side=tk.LEFT, padx=(0, 4))
         self.y_entry = self._make_entry(pos_frame, width=5)
         self.y_entry.pack(side=tk.LEFT)
+        # Molette sur X/Y : ±1 (pratique pour suivre une marche vers un phorreur)
+        self.x_entry.bind("<MouseWheel>", lambda e: self._nudge_entry(self.x_entry, e))
+        self.y_entry.bind("<MouseWheel>", lambda e: self._nudge_entry(self.y_entry, e))
+        tk.Label(pos_frame, text="(molette = ±1)", bg=COLORS["bg"], fg=COLORS["text_dim"],
+                 font=("Fjalla One", 8)).pack(side=tk.LEFT, padx=(6, 0))
 
         # --- Croix de direction ---
         cross = tk.Frame(body, bg=COLORS["bg"])
@@ -113,8 +138,21 @@ class HuntHelper:
             self.direction_buttons[direction] = btn
 
         # --- Recherche d'indice ---
-        tk.Label(body, text="Indice", bg=COLORS["bg"], fg=COLORS["text_dim"],
-                 font=("Fjalla One", 10), anchor="w").pack(fill=tk.X)
+        clue_header = tk.Frame(body, bg=COLORS["bg"])
+        clue_header.pack(fill=tk.X)
+        tk.Label(clue_header, text="Indice", bg=COLORS["bg"], fg=COLORS["text_dim"],
+                 font=("Fjalla One", 10), anchor="w").pack(side=tk.LEFT)
+        # Étape phorreur : introuvable en base (objet visible par le joueur seul),
+        # on la trace dans l'historique et le joueur met à jour la position à la main
+        phorreur_btn = tk.Button(
+            clue_header, text="Étape phorreur",
+            font=("Fjalla One", 8),
+            bg=COLORS["bg_card"], fg=COLORS["text_dim"],
+            activebackground=COLORS["accent_hover"], activeforeground="#ffffff",
+            relief=tk.FLAT, cursor="hand2", padx=6,
+            command=self._on_phorreur
+        )
+        phorreur_btn.pack(side=tk.RIGHT)
         self.clue_entry = self._make_entry(body)
         self.clue_entry.pack(fill=tk.X, pady=(2, 0))
         self.clue_entry.bind("<KeyRelease>", self._on_clue_typed)
@@ -139,8 +177,33 @@ class HuntHelper:
         )
         self.result_label.pack(fill=tk.X)
 
+        # --- Historique des étapes ---
+        self.history_frame = tk.Frame(body, bg=COLORS["bg"])
+        history_header = tk.Frame(self.history_frame, bg=COLORS["bg"])
+        history_header.pack(fill=tk.X)
+        tk.Label(history_header, text="Étapes", bg=COLORS["bg"], fg=COLORS["text_dim"],
+                 font=("Fjalla One", 10), anchor="w").pack(side=tk.LEFT)
+        undo_btn = tk.Button(
+            history_header, text="↩ Retour",
+            font=("Fjalla One", 8),
+            bg=COLORS["bg_card"], fg=COLORS["text_dim"],
+            activebackground=COLORS["accent_hover"], activeforeground="#ffffff",
+            relief=tk.FLAT, cursor="hand2", padx=6,
+            command=self._undo_step
+        )
+        undo_btn.pack(side=tk.RIGHT)
+        self.history_list = tk.Listbox(
+            self.history_frame, height=3,
+            bg=COLORS["bg_card"], fg=COLORS["text_dim"],
+            selectbackground=COLORS["bg_card"], selectforeground=COLORS["text"],
+            font=("Fjalla One", 9),
+            relief=tk.FLAT, highlightthickness=0, activestyle="none"
+        )
+        self.history_list.pack(fill=tk.X, pady=(2, 0))
+        # (le frame n'est packé que lorsqu'il y a des étapes)
+
         # --- Options + statut ---
-        self.autocopy_var = tk.BooleanVar(value=True)
+        self.autocopy_var = tk.BooleanVar(value=self.auto_copy)
         autocopy = tk.Checkbutton(
             body, text="Copier /travel automatiquement",
             variable=self.autocopy_var,
@@ -150,6 +213,18 @@ class HuntHelper:
             highlightthickness=0
         )
         autocopy.pack(anchor="w")
+        self.autocopy_widget = autocopy  # ancre de placement pour l'historique
+
+        self.autotravel_var = tk.BooleanVar(value=self.auto_travel)
+        autotravel = tk.Checkbutton(
+            body, text="Écrire /travel dans le jeu (auto-pilote)",
+            variable=self.autotravel_var,
+            bg=COLORS["bg"], fg=COLORS["text_dim"],
+            activebackground=COLORS["bg"], activeforeground=COLORS["text"],
+            selectcolor=COLORS["bg_input"], font=("Fjalla One", 9),
+            highlightthickness=0
+        )
+        autotravel.pack(anchor="w")
 
         self.status_label = tk.Label(
             body, text="", bg=COLORS["bg"], fg=COLORS["text_dim"],
@@ -317,6 +392,23 @@ class HuntHelper:
         except ValueError:
             return None
 
+    def _set_position(self, x: int, y: int):
+        self.x_entry.delete(0, tk.END)
+        self.x_entry.insert(0, str(x))
+        self.y_entry.delete(0, tk.END)
+        self.y_entry.insert(0, str(y))
+
+    def _nudge_entry(self, entry: tk.Entry, event):
+        """Molette sur un champ de position : ±1."""
+        try:
+            value = int(entry.get().strip())
+        except ValueError:
+            return "break"
+        value += 1 if event.delta > 0 else -1
+        entry.delete(0, tk.END)
+        entry.insert(0, str(value))
+        return "break"
+
     def _search(self):
         """Lance la recherche de l'indice (réseau, en arrière-plan)."""
         position = self._get_position()
@@ -329,18 +421,19 @@ class HuntHelper:
         x, y = position
         clue = self.selected_clue
         direction = self.direction
+        step = {"start": (x, y), "clue": clue["name"], "direction": direction}
         self._set_status("Recherche…")
 
         def worker():
             try:
                 result = hunt_api.find_clue(x, y, direction, clue["id"])
-                self.root.after(0, lambda: self._on_result(result))
+                self.root.after(0, lambda: self._on_result(result, step))
             except Exception:
                 self.root.after(0, lambda: self._set_status("Erreur réseau", error=True))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _on_result(self, result: Optional[Dict]):
+    def _on_result(self, result: Optional[Dict], step: Dict):
         """Affiche le résultat et prépare l'étape suivante."""
         if result is None:
             self.result_label.configure(text="Introuvable (≤ 10 maps)",
@@ -352,25 +445,96 @@ class HuntHelper:
         self.result_label.configure(text=f"→  [{x} ; {y}]   ({distance} maps)",
                                     fg=COLORS["gold"])
 
-        copied = ""
-        if self.autocopy_var.get():
-            travel = f"/travel {x},{y}"
+        # Enregistrer l'étape dans l'historique
+        step["result"] = (x, y)
+        self.history.append(step)
+        self._refresh_history()
+
+        travel = f"/travel {x},{y}"
+        extra = ""
+        if self.autotravel_var.get() and self.on_travel_command:
+            self.on_travel_command(travel)
+            extra = " · envoyé en jeu"
+        elif self.autocopy_var.get():
             self.window.clipboard_clear()
             self.window.clipboard_append(travel)
-            copied = " · /travel copié"
-        self._set_status(f"Trouvé à {distance} map(s){copied}", success=True)
+            extra = " · /travel copié"
+        self._set_status(f"Trouvé à {distance} map(s){extra}", success=True)
 
         # Enchaîner : la map trouvée devient la position de départ suivante
-        self.x_entry.delete(0, tk.END)
-        self.x_entry.insert(0, str(x))
-        self.y_entry.delete(0, tk.END)
-        self.y_entry.insert(0, str(y))
+        self._set_position(x, y)
 
         # Préparer l'indice suivant
         self.selected_clue = None
         self.clue_entry.delete(0, tk.END)
         self.clue_entry.focus_set()
 
+    # ------------------------------------------------------------------
+    # Historique / phorreur
+    # ------------------------------------------------------------------
+    def _refresh_history(self):
+        """Met à jour la liste des étapes affichée."""
+        self.history_list.delete(0, tk.END)
+        for i, step in enumerate(self.history[-MAX_HISTORY_DISPLAY:],
+                                 start=max(1, len(self.history) - MAX_HISTORY_DISPLAY + 1)):
+            if step.get("phorreur"):
+                text = f" {i}. Phorreur (manuel) depuis [{step['start'][0]};{step['start'][1]}]"
+            else:
+                arrow = DIRECTION_ARROWS.get(step["direction"], "?")
+                rx, ry = step["result"]
+                text = f" {i}. {arrow} {step['clue']} → [{rx};{ry}]"
+            self.history_list.insert(tk.END, text)
+        self.history_list.configure(height=min(max(len(self.history), 1), MAX_HISTORY_DISPLAY))
+        self.history_list.see(tk.END)
+
+        if self.history:
+            if not self.history_frame.winfo_ismapped():
+                self.history_frame.pack(fill=tk.X, pady=(0, 6),
+                                        before=self.autocopy_widget)
+        else:
+            self.history_frame.pack_forget()
+
+    def _undo_step(self):
+        """Retour arrière : restaure la position de départ de la dernière étape."""
+        if not self.history:
+            return
+        step = self.history.pop()
+        self._set_position(*step["start"])
+        self._refresh_history()
+        self.result_label.configure(text="")
+        self._set_status(f"Retour avant l'étape « {step.get('clue', 'Phorreur')} »")
+
+    def _on_phorreur(self):
+        """Étape phorreur : non localisable en base, le joueur la fait à la main."""
+        position = self._get_position()
+        if position is None:
+            self._set_status("Position invalide", error=True)
+            return
+        self.history.append({"start": position, "phorreur": True})
+        self._refresh_history()
+        self.result_label.configure(text="Phorreur : cherchez en jeu",
+                                    fg=COLORS["text_dim"])
+        self._set_status("Trouvez-le, puis mettez la position à jour (molette sur X/Y)")
+
     def _set_status(self, text: str, error: bool = False, success: bool = False):
         color = COLORS["error"] if error else COLORS["success"] if success else COLORS["text_dim"]
         self.status_label.configure(text=text, fg=color)
+
+    # ------------------------------------------------------------------
+    # Persistance des options
+    # ------------------------------------------------------------------
+    def to_dict(self) -> Dict:
+        """Options à persister dans la configuration."""
+        return {
+            "auto_copy": self.autocopy_var.get() if self.autocopy_var else self.auto_copy,
+            "auto_travel": self.autotravel_var.get() if self.autotravel_var else self.auto_travel,
+        }
+
+    def from_dict(self, data: Dict):
+        """Charge les options depuis la configuration."""
+        self.auto_copy = data.get("auto_copy", True)
+        self.auto_travel = data.get("auto_travel", False)
+        if self.autocopy_var:
+            self.autocopy_var.set(self.auto_copy)
+        if self.autotravel_var:
+            self.autotravel_var.set(self.auto_travel)

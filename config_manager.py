@@ -1,18 +1,37 @@
 """Module pour gérer la configuration de l'application."""
 import json
 import os
+import shutil
 from typing import Dict, Optional
 from pathlib import Path
+
+from app_paths import get_data_dir
 
 
 class ConfigManager:
     """Gère la sauvegarde et le chargement de la configuration."""
-    
+
     DEFAULT_CONFIG_FILE = "config.json"
-    
+
     def __init__(self, config_file: Optional[str] = None):
-        self.config_file = config_file or self.DEFAULT_CONFIG_FILE
-        self.config_path = Path(self.config_file)
+        if config_file:
+            self.config_file = config_file
+            self.config_path = Path(config_file)
+        else:
+            # Config dans %APPDATA% : survit aux déplacements de l'exe et
+            # fonctionne même si l'exe est dans un dossier protégé
+            self.config_path = Path(get_data_dir()) / self.DEFAULT_CONFIG_FILE
+            self.config_file = str(self.config_path)
+            self._migrate_legacy_file(Path(self.DEFAULT_CONFIG_FILE))
+
+    def _migrate_legacy_file(self, legacy_path: Path):
+        """Déplace l'ancienne config (à côté de l'exe) vers %APPDATA%."""
+        if legacy_path.exists() and not self.config_path.exists():
+            try:
+                shutil.move(str(legacy_path), str(self.config_path))
+                print(f"Configuration migrée vers {self.config_path}")
+            except Exception as e:
+                print(f"Impossible de migrer l'ancienne configuration: {e}")
         
     def save(self, config: Dict) -> bool:
         """Sauvegarde la configuration dans un fichier JSON."""

@@ -16,6 +16,9 @@ from character_wheel import CharacterWheel
 from hunt_helper import HuntHelper
 from config_manager import ConfigManager
 from font_loader import load_custom_fonts
+from version import __version__
+import autostart
+import update_checker
 
 
 def _get_base_dir() -> str:
@@ -41,6 +44,7 @@ class DofusWindowSwitcher:
         # System tray
         self.tray_icon: Optional[pystray.Icon] = None
         self.running = False
+        self._pending_hunt_config: dict = {}
         
         # Configurer les callbacks des hotkeys
         self.hotkey_manager.on_toggle_overlay = self._toggle_overlay
@@ -80,6 +84,8 @@ class DofusWindowSwitcher:
             self.wheel.create_window(self.overlay.root)
             self.wheel.on_select = self._on_wheel_select
             self.hunt.create_window(self.overlay.root)
+            self.hunt.from_dict(self._pending_hunt_config)
+            self.hunt.on_travel_command = self._send_travel_command
         
         # Enregistrer les hotkeys
         self.hotkey_manager.register_all()
@@ -144,7 +150,11 @@ class DofusWindowSwitcher:
         # Charger la configuration de l'overlay
         if "overlay" in config:
             self.overlay.from_dict(config["overlay"])
-    
+
+        # Options de l'assistant de chasse (appliquées après création de la fenêtre)
+        self._pending_hunt_config = config.get("hunt", {})
+        self.hunt.from_dict(self._pending_hunt_config)
+
     def _save_config(self):
         """Sauvegarde la configuration actuelle."""
         config = self.config_manager.get_full_config(
@@ -152,6 +162,7 @@ class DofusWindowSwitcher:
             self.hotkey_manager.to_dict(),
             self.overlay.to_dict()
         )
+        config["hunt"] = self.hunt.to_dict()
         self.config_manager.save(config)
     
     def _update_overlay(self):
@@ -202,6 +213,27 @@ class DofusWindowSwitcher:
         """Callback quand un personnage est sélectionné via la roue."""
         self.window_manager.switch_to_position(position)
         self._update_overlay()
+
+    def _send_travel_command(self, command: str):
+        """Écrit une commande /travel dans le chat de la fenêtre DOFUS active.
+
+        Auto-pilote de chasse : focus sur la fenêtre du perso courant, Entrée
+        pour ouvrir le chat, frappe de la commande, Entrée pour l'envoyer.
+        """
+        def worker():
+            import keyboard
+            char = self.window_manager.get_current_character()
+            if not char or not self.detector.is_window_valid(char.hwnd):
+                return
+            self.detector.focus_window(char.hwnd)
+            time.sleep(0.35)  # Laisser la fenêtre prendre le focus
+            keyboard.send('enter')
+            time.sleep(0.15)
+            keyboard.write(command, delay=0.01)
+            time.sleep(0.1)
+            keyboard.send('enter')
+
+        threading.Thread(target=worker, daemon=True).start()
     
     def reload_config(self):
         """Recharge la configuration depuis le fichier sans redémarrer l'app."""
@@ -282,7 +314,7 @@ class DofusWindowSwitcher:
             draw.rectangle([16, 16, 48, 48], fill='#8b2252', outline='#e0e0e0')
         
         menu = pystray.Menu(
-            item('DOFUS Window Switcher', lambda: None, enabled=False),
+            item(f'DOFUS Window Switcher v{__version__}', lambda: None, enabled=False),
             item('---', lambda: None),
             item('Modifier la configuration', lambda: self._open_config()),
             item('---', lambda: None),
@@ -290,6 +322,9 @@ class DofusWindowSwitcher:
             item('Masquer overlay', lambda: self.overlay.hide()),
             item('---', lambda: None),
             item('Chasse au trésor', lambda: self._toggle_hunt()),
+            item('---', lambda: None),
+            item('Démarrer avec Windows', lambda: autostart.toggle(),
+                 checked=lambda _: autostart.is_enabled()),
             item('---', lambda: None),
             item('Quitter', lambda: self.quit())
         )
@@ -300,6 +335,23 @@ class DofusWindowSwitcher:
         """Lance l'icône system tray dans un thread séparé."""
         if self.tray_icon:
             self.tray_icon.run()
+
+    def _check_for_update(self):
+        """Vérifie s'il existe une release plus récente sur GitHub."""
+        time.sleep(3)  # Laisser le tray démarrer
+        update = update_checker.check_for_update(__version__)
+        if not update:
+            return
+        tag, url = update
+        print(f"Nouvelle version disponible: {tag} → {url}")
+        if self.tray_icon:
+            try:
+                self.tray_icon.notify(
+                    f"Version {tag} disponible sur GitHub (actuelle: v{__version__})",
+                    "DOFUS Window Switcher — Mise à jour"
+                )
+            except Exception:
+                pass
     
     def run(self):
         """Lance l'application."""
@@ -309,6 +361,9 @@ class DofusWindowSwitcher:
         self._create_tray_icon()
         tray_thread = threading.Thread(target=self._run_tray_icon, daemon=True)
         tray_thread.start()
+
+        # Vérifier les mises à jour en arrière-plan (silencieux si hors ligne)
+        threading.Thread(target=self._check_for_update, daemon=True).start()
         
         # Boucle de mise à jour périodique
         def update_loop():

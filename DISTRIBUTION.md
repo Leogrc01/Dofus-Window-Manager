@@ -84,10 +84,14 @@ Vous pouvez déplacer l'overlay en le glissant avec la souris.
 ## 📝 Notes
 
 - Les fichiers `config.json` (configuration) et `hunt_clues_cache.json` (cache
-  des indices de chasse, 7 jours) sont créés dans le dossier de lancement de l'exe
+  des indices de chasse, 7 jours) vivent dans `%APPDATA%\DofusWindowManager\`
+  (migration automatique depuis l'ancien emplacement à côté de l'exe)
 - Les fenêtres sont retrouvées automatiquement par nom de personnage après un
   redémarrage de DOFUS — pas besoin de reconfigurer
 - L'assistant chasse au trésor nécessite une connexion internet (API DofusDB)
+- **Démarrer avec Windows** : activable dans le menu de l'icône system tray
+- L'app vérifie au lancement si une version plus récente existe sur GitHub
+  et vous en informe par notification (silencieux hors ligne)
 
 ## 🔒 Sécurité
 
