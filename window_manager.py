@@ -11,6 +11,7 @@ class CharacterWindow:
         self.hwnd = hwnd
         self.position = position  # Position dans l'ordre d'initiative (0-7)
         self.character = character  # Nom du personnage en jeu (pour re-matcher les fenêtres)
+        self.skipped = False  # Perso mort/absent : ignoré par la rotation (état runtime, non persisté)
 
     def to_dict(self) -> Dict:
         """Convertit en dictionnaire pour la sérialisation."""
@@ -88,28 +89,59 @@ class WindowManager:
         for _ in range(len(self.characters)):
             self.current_index = (self.current_index + 1) % len(self.characters)
             char = self.characters[self.current_index]
-            if self.detector.is_window_valid(char.hwnd):
+            if not char.skipped and self.detector.is_window_valid(char.hwnd):
                 return self.detector.focus_window(char.hwnd)
-        
+
         # Aucune fenêtre valide trouvée
         self.current_index = start_index
         return False
-    
+
     def switch_to_previous(self) -> bool:
         """Switch vers le personnage précédent dans l'ordre d'initiative."""
         if not self.characters:
             return False
-        
+
         start_index = self.current_index
         for _ in range(len(self.characters)):
             self.current_index = (self.current_index - 1) % len(self.characters)
             char = self.characters[self.current_index]
-            if self.detector.is_window_valid(char.hwnd):
+            if not char.skipped and self.detector.is_window_valid(char.hwnd):
                 return self.detector.focus_window(char.hwnd)
-        
+
         # Aucune fenêtre valide trouvée
         self.current_index = start_index
         return False
+
+    def toggle_skip(self, index: int) -> bool:
+        """Marque/démarque un personnage comme mort/absent (ignoré par la rotation).
+
+        Retourne le nouvel état skipped, ou False si l'index est invalide.
+        """
+        if 0 <= index < len(self.characters):
+            char = self.characters[index]
+            char.skipped = not char.skipped
+            return char.skipped
+        return False
+
+    def get_skipped_list(self) -> List[bool]:
+        """Retourne l'état skipped de chaque personnage (dans l'ordre)."""
+        return [char.skipped for char in self.characters]
+
+    def get_next_index(self) -> int:
+        """Retourne l'index du prochain personnage actif dans la rotation.
+
+        Saute les personnages marqués morts/absents et les fenêtres invalides
+        (même logique que switch_to_next, sans switcher).
+        """
+        if not self.characters:
+            return 0
+        index = self.current_index
+        for _ in range(len(self.characters)):
+            index = (index + 1) % len(self.characters)
+            char = self.characters[index]
+            if not char.skipped and self.detector.is_window_valid(char.hwnd):
+                return index
+        return (self.current_index + 1) % len(self.characters)
     
     def get_current_character(self) -> Optional[CharacterWindow]:
         """Retourne le personnage actuellement actif."""

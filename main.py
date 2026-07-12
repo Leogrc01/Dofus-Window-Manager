@@ -72,6 +72,8 @@ class DofusWindowSwitcher:
         
         # Créer l'overlay
         self.overlay.create_window()
+        self.overlay.on_character_click = self._on_overlay_click
+        self.overlay.on_character_toggle = self._on_overlay_toggle
         
         # Créer la roue de sélection et l'assistant de chasse (même root que l'overlay)
         if self.overlay.root:
@@ -156,15 +158,24 @@ class DofusWindowSwitcher:
         """Met à jour l'affichage de l'overlay."""
         if not self.overlay.root:
             return
-        
+
         char_list = self.window_manager.get_character_list()
-        current_char = self.window_manager.get_current_character()
-        next_char = self.window_manager.get_next_character()
-        
         current_index = self.window_manager.current_index
-        next_index = (current_index + 1) % len(char_list) if char_list else 0
-        
-        self.overlay.update_display(char_list, current_index, next_index)
+        # Prochain perso en sautant les morts/absents et fenêtres invalides
+        next_index = self.window_manager.get_next_index()
+        skipped = self.window_manager.get_skipped_list()
+
+        self.overlay.update_display(char_list, current_index, next_index, skipped)
+
+    def _on_overlay_click(self, index: int):
+        """Clic gauche sur un nom de l'overlay : switch vers ce personnage."""
+        self.window_manager.switch_to_position(index)
+        self._update_overlay()
+
+    def _on_overlay_toggle(self, index: int):
+        """Clic droit sur un nom de l'overlay : marquer mort/vivant."""
+        self.window_manager.toggle_skip(index)
+        self._update_overlay()
     
     def _toggle_overlay(self):
         """Affiche/masque l'overlay."""

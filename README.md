@@ -70,6 +70,11 @@ python main.py
 
 🔄 **Overlay synchronisé** : si vous changez de fenêtre par alt-tab ou clic direct, l'overlay et l'ordre de la roue suivent automatiquement la fenêtre réellement active.
 
+🖱️ **Overlay interactif** :
+- **Clic gauche** sur un nom → switch direct vers ce personnage
+- **Clic droit** sur un nom → le marquer **mort/absent** (barré et grisé) : la rotation suivant/précédent le saute, re-clic droit pour le réactiver. Les touches F1-F8 continuent de fonctionner même sur un perso marqué.
+- **Glisser** le bandeau pour le déplacer (un déplacement n'est jamais interprété comme un clic)
+
 ### Comment quitter
 
 - **Raccourci** : `Ctrl+Alt+Q`
