@@ -150,6 +150,17 @@ dofus-window-switcher/
 - **tkinter** : Interface graphique overlay
 - **pystray** : Icône system tray
 
+## 📦 Release
+
+L'exe est construit et publié automatiquement par GitHub Actions à chaque tag de version :
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+→ La release apparaît sur GitHub avec `DOFUS-Window-Switcher.exe` attaché et des notes générées depuis les commits. Le workflow peut aussi être lancé manuellement (onglet Actions → Release → Run workflow) pour un build de test sans release.
+
 ## 📝 Licence
 
 MIT
