@@ -25,10 +25,10 @@
 
 ### Utilisation quotidienne
 
-À chaque fois que vous relancez DOFUS :
-1. Double-cliquez sur `DOFUS-Window-Switcher.exe`
-2. Vérifiez/ajustez l'ordre si nécessaire (les handles de fenêtre changent)
-3. Cliquez sur **🚀 Sauvegarder & Lancer**
+Double-cliquez sur `DOFUS-Window-Switcher.exe`, puis **"▶ Lancer"** : les fenêtres
+sont retrouvées automatiquement par nom de personnage, même après un redémarrage
+de DOFUS. La reconfiguration n'est nécessaire que pour changer l'ordre, les noms
+ou les raccourcis.
 
 ## 🎮 Raccourcis
 
@@ -38,7 +38,13 @@ Une fois l'application lancée :
 - **`** (backtick) : Personnage suivant dans l'ordre
 - **\\** (backslash) : Personnage précédent dans l'ordre
 - **Ctrl+Alt+O** : Afficher/masquer l'overlay
+- **Ctrl+Alt+W** : Roue de sélection radiale
+- **Ctrl+Alt+H** : Assistant chasse au trésor (données DofusDB, `/travel` auto-copié)
+- **Ctrl+Alt+C** : Modifier la configuration
 - **Ctrl+Alt+Q** : **Quitter l'application complètement**
+
+💡 Les touches de switch ne réagissent que si une fenêtre DOFUS est au premier
+plan (désactivable via `"only_in_game": false` dans `config.json`).
 
 ### 🚪 Comment arrêter l'application
 
@@ -49,12 +55,12 @@ L'overlay disparaîtra et tous les raccourcis seront désactivés.
 
 ## 📊 Overlay Visuel
 
-L'overlay affiche en temps réel :
+L'overlay (coins arrondis, icônes de classe) affiche en temps réel :
 ```
-[Roublard] → Sram → Pandawa → Eniripsa → Sacrieur → Iop → Sadida → Zobal
+Roublard › Sram › Pandawa › Eniripsa › Sacrieur › Iop › Sadida › Zobal
 ```
-- **[Vert]** : Personnage actuellement actif
-- **Orange** : Prochain personnage
+- **Bordeaux** : Personnage actuellement actif (suit aussi vos alt-tab et clics)
+- **Doré** : Prochain personnage
 
 Vous pouvez déplacer l'overlay en le glissant avec la souris.
 
@@ -65,9 +71,11 @@ Vous pouvez déplacer l'overlay en le glissant avec la souris.
 - **Windows Defender** : Autorisez l'exécution (c'est normal pour les exe Python)
 
 ### Les fenêtres ne switchent pas
-1. Relancez `DOFUS-Window-Switcher.exe` et refaites la configuration
-2. Vérifiez que DOFUS est bien lancé
-3. Les handles de fenêtre changent à chaque lancement de DOFUS
+1. Vérifiez que DOFUS est bien lancé et au premier plan (les touches de switch
+   sont filtrées hors du jeu par défaut)
+2. Le re-matching automatique retrouve les fenêtres en ~5 secondes après un
+   redémarrage de DOFUS ; si un personnage a changé de nom, refaites la
+   configuration (Ctrl+Alt+C)
 
 ### L'overlay ne s'affiche pas
 - Appuyez sur **Ctrl+Alt+O** pour le réafficher
@@ -75,9 +83,11 @@ Vous pouvez déplacer l'overlay en le glissant avec la souris.
 
 ## 📝 Notes
 
-- Le fichier `config.json` est créé automatiquement dans le même dossier que les .exe
-- Ce fichier contient votre configuration (ordre, noms, raccourcis)
-- **Important** : Les handles de fenêtre Windows changent à chaque redémarrage de DOFUS, donc relancez la config après chaque restart !
+- Les fichiers `config.json` (configuration) et `hunt_clues_cache.json` (cache
+  des indices de chasse, 7 jours) sont créés dans le dossier de lancement de l'exe
+- Les fenêtres sont retrouvées automatiquement par nom de personnage après un
+  redémarrage de DOFUS — pas besoin de reconfigurer
+- L'assistant chasse au trésor nécessite une connexion internet (API DofusDB)
 
 ## 🔒 Sécurité
 
