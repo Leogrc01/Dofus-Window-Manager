@@ -41,11 +41,11 @@ Cette interface vous permet de :
 - ⌨️ Personnaliser les touches de navigation (suivant/précédent)
 - 💾 Sauvegarder la configuration facilement
 
-**Utilisez cette interface à chaque fois que vous relancez DOFUS** pour mettre à jour les handles de fenêtres.
+✨ **Re-matching automatique** : la configuration mémorise le *nom du personnage* de chaque fenêtre. Au démarrage (et périodiquement pendant l'exécution), l'application retrouve automatiquement les fenêtres DOFUS par leur titre, même après un redémarrage du jeu. Plus besoin de reconfigurer à chaque relance — l'interface de configuration ne sert plus qu'à changer l'ordre, les noms ou les raccourcis.
 
 ### Configuration manuelle
 
-Vous pouvez aussi éditer `config.json` directement, mais les `hwnd` changent à chaque redémarrage de DOFUS.
+Vous pouvez aussi éditer `config.json` directement. Le champ `character` (nom du personnage en jeu) sert au re-matching automatique des fenêtres ; les `hwnd` sont mis à jour automatiquement.
 
 ## 🎯 Utilisation
 
@@ -63,6 +63,10 @@ python main.py
 - **Ctrl+Alt+Q** : Quitter l'application complètement
 
 💡 **Clavier 60% ?** Les touches **Suivant** et **Précédent** sont personnalisables dans la fenêtre de configuration !
+
+🎯 **Filtre en jeu** : par défaut, les touches de switch (F1-F8, suivant, précédent) ne réagissent que si une fenêtre DOFUS est au premier plan — elles ne perturbent plus votre navigateur ou Discord. Désactivable avec `"only_in_game": false` dans la section `hotkeys` de `config.json`. Les raccourcis `Ctrl+Alt+*` restent globaux.
+
+🔄 **Overlay synchronisé** : si vous changez de fenêtre par alt-tab ou clic direct, l'overlay et l'ordre de la roue suivent automatiquement la fenêtre réellement active.
 
 ### Comment quitter
 
@@ -111,6 +115,8 @@ dofus-window-switcher/
 ├── window_manager.py       # Gestion de l'ordre et du switching
 ├── hotkey_manager.py       # Gestion des raccourcis clavier
 ├── overlay.py              # Interface overlay
+├── character_wheel.py      # Roue de sélection radiale
+├── class_icons.py          # Chargement des icônes de classe
 ├── config_manager.py       # Gestion de la configuration
 └── requirements.txt
 ```

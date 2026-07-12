@@ -449,7 +449,7 @@ class ConfigWindow:
                 corner_radius=8
             ).pack(side="right", padx=5, pady=14)
         
-        # Sauvegarder (toujours présent)
+        # Sauvegarder (toujours présent) — accent bordeaux, cohérent avec le header
         save_text = "Sauvegarder & Appliquer" if not self.allow_launch else "Sauvegarder"
         save_width = 200 if not self.allow_launch else 120
         ctk.CTkButton(
@@ -457,9 +457,9 @@ class ConfigWindow:
             text=save_text,
             command=self._save_config,
             font=ctk.CTkFont(family="Fjalla One", size=13, weight="bold") if not self.allow_launch else ctk.CTkFont(family="Fjalla One", size=12),
-            fg_color=COLORS["success"] if not self.allow_launch else "#1a6b3c",
-            hover_color="#3bcc6e" if not self.allow_launch else "#228b4a",
-            text_color="#000000" if not self.allow_launch else "#ffffff",
+            fg_color=COLORS["accent"],
+            hover_color=COLORS["accent_hover"],
+            text_color="#ffffff",
             width=save_width,
             height=36,
             corner_radius=8
@@ -548,7 +548,8 @@ class ConfigWindow:
                 characters.append({
                     "name": name,
                     "hwnd": window.hwnd,
-                    "position": position
+                    "position": position,
+                    "character": WindowDetector.extract_character_from_title(window.title)
                 })
         
         # Récupérer les raccourcis personnalisés

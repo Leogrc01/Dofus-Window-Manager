@@ -28,7 +28,8 @@ class HotkeyManager:
     DEFAULT_OPEN_CONFIG_KEY = 'ctrl+alt+c'
     DEFAULT_QUIT_KEY = 'ctrl+alt+q'
     DEFAULT_WHEEL_KEY = 'ctrl+alt+w'
-    
+    DEFAULT_ONLY_IN_GAME = True  # Les touches de switch ne réagissent que si DOFUS est au premier plan
+
     def __init__(self, window_manager: WindowManager):
         self.window_manager = window_manager
         self.registered_hotkeys: List[str] = []
@@ -47,7 +48,8 @@ class HotkeyManager:
         self.open_config_key = self.DEFAULT_OPEN_CONFIG_KEY
         self.quit_key = self.DEFAULT_QUIT_KEY
         self.wheel_key = self.DEFAULT_WHEEL_KEY
-        
+        self.only_in_game = self.DEFAULT_ONLY_IN_GAME
+
         # Listener souris (pynput)
         self._mouse_listener: Optional[pynput_mouse.Listener] = None
         self._mouse_callbacks: Dict[pynput_mouse.Button, Callable] = {}
@@ -145,17 +147,28 @@ class HotkeyManager:
                 pass
         self.registered_hotkeys.clear()
     
+    def _switch_allowed(self) -> bool:
+        """Les touches de switch ne réagissent que si DOFUS est au premier plan.
+
+        Évite que F1-F8 ou la touche 'suivant' se déclenchent en tapant dans le
+        navigateur, Discord, etc. Désactivable via only_in_game=False.
+        """
+        return not self.only_in_game or self.window_manager.is_dofus_foreground()
+
     def _switch_to_position(self, position: int):
         """Callback pour switcher vers une position."""
-        self.window_manager.switch_to_position(position)
-    
+        if self._switch_allowed():
+            self.window_manager.switch_to_position(position)
+
     def _switch_to_next(self):
         """Callback pour switcher vers le suivant."""
-        self.window_manager.switch_to_next()
-    
+        if self._switch_allowed():
+            self.window_manager.switch_to_next()
+
     def _switch_to_previous(self):
         """Callback pour switcher vers le précédent."""
-        self.window_manager.switch_to_previous()
+        if self._switch_allowed():
+            self.window_manager.switch_to_previous()
     
     def _toggle_overlay(self):
         """Callback pour afficher/masquer l'overlay."""
@@ -213,7 +226,8 @@ class HotkeyManager:
             "toggle_overlay_key": self.toggle_overlay_key,
             "open_config_key": self.open_config_key,
             "quit_key": self.quit_key,
-            "wheel_key": self.wheel_key
+            "wheel_key": self.wheel_key,
+            "only_in_game": self.only_in_game
         }
     
     def from_dict(self, data: Dict):
@@ -225,3 +239,4 @@ class HotkeyManager:
         self.open_config_key = data.get("open_config_key", self.DEFAULT_OPEN_CONFIG_KEY)
         self.quit_key = data.get("quit_key", self.DEFAULT_QUIT_KEY)
         self.wheel_key = data.get("wheel_key", self.DEFAULT_WHEEL_KEY)
+        self.only_in_game = data.get("only_in_game", self.DEFAULT_ONLY_IN_GAME)

@@ -57,6 +57,12 @@ class DofusWindowSwitcher:
         if config:
             print("Configuration chargée")
             self._load_config(config)
+            # Ré-associer les fenêtres par nom de personnage (les hwnd sauvegardés
+            # sont périmés si DOFUS a redémarré depuis)
+            rematched = self.window_manager.rematch_windows()
+            if rematched:
+                print(f"{rematched} fenêtre(s) ré-associée(s) automatiquement")
+                self._save_config()
         else:
             print("Premier lancement - Configuration initiale")
             self._first_time_setup()
@@ -102,7 +108,8 @@ class DofusWindowSwitcher:
         for i, window in enumerate(windows[:8]):  # Max 8 fenêtres
             # Extraire le nom de classe depuis le titre de la fenêtre
             char_name = self._extract_character_class(window.title, i+1)
-            self.window_manager.add_character(char_name, window.hwnd, i)
+            character = self.detector.extract_character_from_title(window.title)
+            self.window_manager.add_character(char_name, window.hwnd, i, character)
             print(f"  [{i+1}] {window.title} → {char_name}")
         
         print("\nPour personnaliser les noms, utilisez Ctrl+Alt+C ou lancez configure.py")
@@ -197,7 +204,8 @@ class DofusWindowSwitcher:
                 self.window_manager.add_character(
                     char["name"],
                     char["hwnd"],
-                    char["position"]
+                    char["position"],
+                    char.get("character", "")
                 )
             
             # Mettre à jour les raccourcis clavier
@@ -277,10 +285,22 @@ class DofusWindowSwitcher:
         
         # Boucle de mise à jour périodique
         def update_loop():
+            tick = 0
             while self.running:
+                # Suivre la fenêtre réellement active (alt-tab, clic direct)
+                self.window_manager.sync_with_foreground()
+
+                # Toutes les 5s : re-matcher les fenêtres périmées (DOFUS relancé)
+                if tick % 5 == 0 and self.window_manager.has_invalid_windows():
+                    rematched = self.window_manager.rematch_windows()
+                    if rematched:
+                        print(f"{rematched} fenêtre(s) ré-associée(s) automatiquement")
+                        self._save_config()
+
                 # Mettre à jour l'overlay toutes les secondes
                 self._update_overlay()
                 time.sleep(1)
+                tick += 1
         
         update_thread = threading.Thread(target=update_loop, daemon=True)
         update_thread.start()

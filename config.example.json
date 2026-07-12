@@ -5,12 +5,14 @@
       {
         "name": "PANDA",
         "hwnd": 123456,
-        "position": 0
+        "position": 0,
+        "character": "NomDuPerso1"
       },
       {
         "name": "ENU",
         "hwnd": 123457,
-        "position": 1
+        "position": 1,
+        "character": "NomDuPerso2"
       },
       {
         "name": "ENI",
@@ -59,7 +61,8 @@
     "next_key": "tab",
     "previous_key": "shift+tab",
     "toggle_overlay_key": "ctrl+alt+o",
-    "quit_key": "ctrl+alt+q"
+    "quit_key": "ctrl+alt+q",
+    "only_in_game": true
   },
   "overlay": {
     "enabled": true,

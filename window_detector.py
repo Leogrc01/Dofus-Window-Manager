@@ -60,6 +60,27 @@ class WindowDetector:
             return process.name() in self.DOFUS_PROCESS_NAMES
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return False
+
+    def is_dofus_window(self, hwnd: int) -> bool:
+        """Vérifie si un hwnd correspond à une fenêtre DOFUS."""
+        return self._is_dofus_process(hwnd)
+
+    @staticmethod
+    def get_foreground_window() -> int:
+        """Retourne le hwnd de la fenêtre actuellement au premier plan (0 si erreur)."""
+        try:
+            return win32gui.GetForegroundWindow()
+        except Exception:
+            return 0
+
+    @staticmethod
+    def extract_character_from_title(title: str) -> str:
+        """Extrait le nom du personnage depuis un titre 'NomPerso - Classe - Version'."""
+        parts = title.split(" - ")
+        if len(parts) >= 2:
+            return parts[0].strip()
+        # Titre sans personnage (ex: écran de connexion)
+        return ""
     
     def get_window_count(self) -> int:
         """Retourne le nombre de fenêtres DOFUS détectées."""
