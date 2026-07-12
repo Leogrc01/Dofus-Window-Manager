@@ -62,6 +62,8 @@
     "previous_key": "shift+tab",
     "toggle_overlay_key": "ctrl+alt+o",
     "quit_key": "ctrl+alt+q",
+    "wheel_key": "ctrl+alt+w",
+    "hunt_key": "ctrl+alt+h",
     "only_in_game": true
   },
   "overlay": {

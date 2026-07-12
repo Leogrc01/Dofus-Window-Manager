@@ -60,6 +60,8 @@ python main.py
 - **\\** (backslash) : Passer au personnage précédent dans l'ordre d'initiative **(personnalisable)**
 - **Ctrl+Alt+O** : Afficher/masquer l'overlay
 - **Ctrl+Alt+C** : Modifier la configuration en temps réel
+- **Ctrl+Alt+W** : Roue de sélection radiale
+- **Ctrl+Alt+H** : Assistant chasse au trésor
 - **Ctrl+Alt+Q** : Quitter l'application complètement
 
 💡 **Clavier 60% ?** Les touches **Suivant** et **Précédent** sont personnalisables dans la fenêtre de configuration !
@@ -82,6 +84,21 @@ L'overlay affiche :
   ^^^
   Perso actif (surligné)
 ```
+
+### Assistant chasse au trésor
+
+Plus besoin de Ganymède ou d'un site externe : **Ctrl+Alt+H** ouvre un petit panneau intégré (données DofusDB) :
+
+1. Entrez votre **position** de départ `[x ; y]`
+2. Tapez le début de l'**indice** (ex: « fer à ch... ») et validez avec **Entrée** — autocomplétion sans accents
+3. Cliquez la **direction** de l'indice (▲ ◄ ► ▼)
+4. Le panneau affiche la map cible et copie automatiquement **`/travel x,y`** dans le presse-papier → collez dans le chat du jeu
+5. La map trouvée devient votre nouvelle position de départ : enchaînez directement l'indice suivant
+
+- L'ordre indice/direction est libre : la recherche part dès que les deux sont choisis
+- « Introuvable (≤ 10 maps) » : l'indice n'existe pas dans cette direction, comme en jeu
+- La liste des indices est mise en cache 7 jours (`hunt_clues_cache.json`) — première ouverture avec connexion requise
+- **Échap** ferme le panneau
 
 ### Modification de la configuration en temps réel
 

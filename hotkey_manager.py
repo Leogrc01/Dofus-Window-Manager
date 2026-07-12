@@ -28,6 +28,7 @@ class HotkeyManager:
     DEFAULT_OPEN_CONFIG_KEY = 'ctrl+alt+c'
     DEFAULT_QUIT_KEY = 'ctrl+alt+q'
     DEFAULT_WHEEL_KEY = 'ctrl+alt+w'
+    DEFAULT_HUNT_KEY = 'ctrl+alt+h'
     DEFAULT_ONLY_IN_GAME = True  # Les touches de switch ne réagissent que si DOFUS est au premier plan
 
     def __init__(self, window_manager: WindowManager):
@@ -39,6 +40,7 @@ class HotkeyManager:
         self.on_open_config: Callable = lambda: None
         self.on_quit: Callable = lambda: None
         self.on_toggle_wheel: Callable = lambda: None
+        self.on_toggle_hunt: Callable = lambda: None
         
         # Configuration des touches
         self.position_keys = self.DEFAULT_POSITION_KEYS.copy()
@@ -48,6 +50,7 @@ class HotkeyManager:
         self.open_config_key = self.DEFAULT_OPEN_CONFIG_KEY
         self.quit_key = self.DEFAULT_QUIT_KEY
         self.wheel_key = self.DEFAULT_WHEEL_KEY
+        self.hunt_key = self.DEFAULT_HUNT_KEY
         self.only_in_game = self.DEFAULT_ONLY_IN_GAME
 
         # Listener souris (pynput)
@@ -115,6 +118,13 @@ class HotkeyManager:
             self.registered_hotkeys.append(self.wheel_key)
         except Exception as e:
             print(f"Erreur lors de l'enregistrement de {self.wheel_key}: {e}")
+
+        # Raccourci pour l'assistant de chasse au trésor
+        try:
+            keyboard.add_hotkey(self.hunt_key, self._toggle_hunt)
+            self.registered_hotkeys.append(self.hunt_key)
+        except Exception as e:
+            print(f"Erreur lors de l'enregistrement de {self.hunt_key}: {e}")
         
         # Démarrer le listener souris si des boutons sont configurés
         self._start_mouse_listener()
@@ -185,6 +195,10 @@ class HotkeyManager:
     def _toggle_wheel(self):
         """Callback pour afficher/masquer la roue de sélection."""
         self.on_toggle_wheel()
+
+    def _toggle_hunt(self):
+        """Callback pour afficher/masquer l'assistant de chasse."""
+        self.on_toggle_hunt()
     
     def set_position_keys(self, keys: List[str]):
         """Configure les touches pour les positions."""
@@ -227,6 +241,7 @@ class HotkeyManager:
             "open_config_key": self.open_config_key,
             "quit_key": self.quit_key,
             "wheel_key": self.wheel_key,
+            "hunt_key": self.hunt_key,
             "only_in_game": self.only_in_game
         }
     
@@ -239,4 +254,5 @@ class HotkeyManager:
         self.open_config_key = data.get("open_config_key", self.DEFAULT_OPEN_CONFIG_KEY)
         self.quit_key = data.get("quit_key", self.DEFAULT_QUIT_KEY)
         self.wheel_key = data.get("wheel_key", self.DEFAULT_WHEEL_KEY)
+        self.hunt_key = data.get("hunt_key", self.DEFAULT_HUNT_KEY)
         self.only_in_game = data.get("only_in_game", self.DEFAULT_ONLY_IN_GAME)

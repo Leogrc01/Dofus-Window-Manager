@@ -33,6 +33,7 @@ ENV/
 
 # Configuration
 config.json
+hunt_clues_cache.json
 *.log
 
 # OS

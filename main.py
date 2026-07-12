@@ -13,6 +13,7 @@ from window_manager import WindowManager
 from hotkey_manager import HotkeyManager
 from overlay import OverlayWindow
 from character_wheel import CharacterWheel
+from hunt_helper import HuntHelper
 from config_manager import ConfigManager
 from font_loader import load_custom_fonts
 
@@ -34,6 +35,7 @@ class DofusWindowSwitcher:
         self.hotkey_manager = HotkeyManager(self.window_manager)
         self.overlay = OverlayWindow()
         self.wheel = CharacterWheel()
+        self.hunt = HuntHelper()
         self.config_manager = ConfigManager()
         
         # System tray
@@ -45,6 +47,7 @@ class DofusWindowSwitcher:
         self.hotkey_manager.on_quit = self.quit
         self.hotkey_manager.on_open_config = self._open_config
         self.hotkey_manager.on_toggle_wheel = self._toggle_wheel
+        self.hotkey_manager.on_toggle_hunt = self._toggle_hunt
         
     def initialize(self):
         """Initialise l'application."""
@@ -70,10 +73,11 @@ class DofusWindowSwitcher:
         # Créer l'overlay
         self.overlay.create_window()
         
-        # Créer la roue de sélection (sur le même root que l'overlay)
+        # Créer la roue de sélection et l'assistant de chasse (même root que l'overlay)
         if self.overlay.root:
             self.wheel.create_window(self.overlay.root)
             self.wheel.on_select = self._on_wheel_select
+            self.hunt.create_window(self.overlay.root)
         
         # Enregistrer les hotkeys
         self.hotkey_manager.register_all()
@@ -90,6 +94,7 @@ class DofusWindowSwitcher:
         print("  Ctrl+Alt+O : Afficher/masquer l'overlay")
         print("  Ctrl+Alt+C : Modifier la configuration")
         print("  Ctrl+Alt+W : Roue de sélection")
+        print("  Ctrl+Alt+H : Assistant chasse au trésor")
         print("  Ctrl+Alt+Q : Quitter")
     
     def _first_time_setup(self):
@@ -175,6 +180,13 @@ class DofusWindowSwitcher:
         # Passer par root.after pour rester thread-safe (appelé depuis thread keyboard)
         self.overlay.root.after(0, lambda: self.wheel.toggle(char_list, current_index))
     
+    def _toggle_hunt(self):
+        """Affiche/masque l'assistant de chasse au trésor."""
+        if not self.overlay.root:
+            return
+        # Passer par root.after pour rester thread-safe (appelé depuis thread keyboard)
+        self.overlay.root.after(0, self.hunt.toggle)
+
     def _on_wheel_select(self, position: int):
         """Callback quand un personnage est sélectionné via la roue."""
         self.window_manager.switch_to_position(position)
@@ -215,6 +227,8 @@ class DofusWindowSwitcher:
                 self.hotkey_manager.previous_key = hotkeys["previous_key"]
             if hotkeys.get("wheel_key"):
                 self.hotkey_manager.wheel_key = hotkeys["wheel_key"]
+            if hotkeys.get("hunt_key"):
+                self.hotkey_manager.hunt_key = hotkeys["hunt_key"]
             
             # Ré-enregistrer les hotkeys avec les nouvelles touches
             self.hotkey_manager.register_all()
@@ -263,6 +277,8 @@ class DofusWindowSwitcher:
             item('---', lambda: None),
             item('Afficher overlay', lambda: self.overlay.show()),
             item('Masquer overlay', lambda: self.overlay.hide()),
+            item('---', lambda: None),
+            item('Chasse au trésor', lambda: self._toggle_hunt()),
             item('---', lambda: None),
             item('Quitter', lambda: self.quit())
         )

@@ -56,6 +56,7 @@ class ConfigWindow:
         self.next_key_entry: Optional[ctk.CTkEntry] = None
         self.previous_key_entry: Optional[ctk.CTkEntry] = None
         self.wheel_key_entry: Optional[ctk.CTkEntry] = None
+        self.hunt_key_entry: Optional[ctk.CTkEntry] = None
         
     def show(self):
         """Affiche la fenêtre de configuration."""
@@ -385,6 +386,38 @@ class ConfigWindow:
             text_color=COLORS["text_secondary"]
         ).pack(side="left")
         
+        # Touche assistant de chasse
+        hunt_frame = ctk.CTkFrame(hotkeys_card, fg_color="transparent")
+        hunt_frame.pack(fill="x", padx=15, pady=4)
+
+        ctk.CTkLabel(
+            hunt_frame,
+            text="Chasse au trésor :",
+            font=ctk.CTkFont(family="Fjalla One", size=12),
+            text_color=COLORS["text_secondary"],
+            width=180,
+            anchor="w"
+        ).pack(side="left")
+
+        self.hunt_key_entry = ctk.CTkEntry(
+            hunt_frame,
+            width=120,
+            height=30,
+            font=ctk.CTkFont(family="Fjalla One", size=12),
+            fg_color=COLORS["bg_input"],
+            border_color=COLORS["border"],
+            text_color=COLORS["text_primary"]
+        )
+        self.hunt_key_entry.insert(0, self.current_hotkeys.get("hunt_key", "ctrl+alt+h"))
+        self.hunt_key_entry.pack(side="left", padx=(0, 10))
+
+        ctk.CTkLabel(
+            hunt_frame,
+            text="(ex: ctrl+alt+h)",
+            font=ctk.CTkFont(family="Fjalla One", size=11),
+            text_color=COLORS["text_secondary"]
+        ).pack(side="left")
+
         # Hint
         ctk.CTkLabel(
             hotkeys_card,
@@ -556,7 +589,8 @@ class ConfigWindow:
         hotkeys = {
             "next_key": self.next_key_entry.get().strip() if self.next_key_entry else "`",
             "previous_key": self.previous_key_entry.get().strip() if self.previous_key_entry else "\\",
-            "wheel_key": self.wheel_key_entry.get().strip() if self.wheel_key_entry else "ctrl+alt+w"
+            "wheel_key": self.wheel_key_entry.get().strip() if self.wheel_key_entry else "ctrl+alt+w",
+            "hunt_key": self.hunt_key_entry.get().strip() if self.hunt_key_entry else "ctrl+alt+h"
         }
         
         self.on_save(characters, hotkeys)
