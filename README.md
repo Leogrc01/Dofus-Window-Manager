@@ -190,14 +190,16 @@ dofus-window-switcher/
 
 ## 📦 Release
 
-L'exe est construit et publié automatiquement par GitHub Actions à chaque tag de version :
+Les binaires sont construits et publiés automatiquement par GitHub Actions à chaque tag de version :
 
 ```bash
 git tag v1.2.0
 git push origin v1.2.0
 ```
 
-→ La release apparaît sur GitHub avec `DOFUS-Window-Switcher.exe` attaché et des notes générées depuis les commits. Le workflow peut aussi être lancé manuellement (onglet Actions → Release → Run workflow) pour un build de test sans release.
+→ La release apparaît sur GitHub avec `DOFUS-Window-Switcher.exe` (Windows) et `DOFUS-Window-Switcher-macOS.zip` (app bundle macOS) attachés, et des notes générées depuis les commits. Le workflow peut aussi être lancé manuellement (onglet Actions → Release → Run workflow) pour un build de test sans release.
+
+**macOS — premier lancement** : l'app n'est pas notariée par Apple. Après avoir dézippé, faites **clic droit → Ouvrir** (ou `xattr -d com.apple.quarantine DOFUS-Window-Switcher.app`) pour passer Gatekeeper, puis autorisez l'app dans **Réglages Système → Confidentialité et sécurité → Accessibilité**.
 
 ## 📝 Licence
 
