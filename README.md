@@ -1,6 +1,6 @@
 # 🎮 DOFUS Window Switcher
 
-Utilitaire Windows pour gérer et switcher entre 8 fenêtres DOFUS selon l'ordre d'initiative de combat.
+Utilitaire **Windows et macOS** pour gérer et switcher entre 8 fenêtres DOFUS selon l'ordre d'initiative de combat.
 
 ## 💡 Concept
 
@@ -11,6 +11,8 @@ Utilitaire Windows pour gérer et switcher entre 8 fenêtres DOFUS selon l'ordre
 - **Overlay visuel** : bandeau discret montrant l'ordre et le perso actif
 
 ## 🚀 Installation
+
+### Windows
 
 ```bash
 # Cloner le projet
@@ -24,6 +26,27 @@ venv\Scripts\activate
 # Installer les dépendances
 pip install -r requirements.txt
 ```
+
+### macOS
+
+```bash
+git clone <repo-url>
+cd dofus-window-switcher
+
+# Python avec tkinter requis (ex: brew install python@3.13 python-tk@3.13)
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install -r requirements.txt   # installe automatiquement pyobjc au lieu de pywin32
+```
+
+⚠️ **Autorisation Accessibilité obligatoire** : au premier lancement, macOS demande d'autoriser l'application (ou votre terminal) dans **Réglages Système → Confidentialité et sécurité → Accessibilité**. Sans cette autorisation, ni la détection des fenêtres ni les raccourcis globaux ne fonctionnent. Relancez l'app après l'avoir accordée.
+
+Différences sur macOS :
+- Pas d'icône de barre système (limitation pystray/Tk) : tout passe par les raccourcis (`Ctrl+Alt+C` config, `Ctrl+Alt+Q` quitter…)
+- L'overlay et la roue ont un fond sombre uni (pas de transparence par couleur-clé sur mac), l'opacité reste réglable
+- Les boutons souris `mouse4`/`mouse5` ne sont pas disponibles (seul `mouse3`, le clic molette)
+- Démarrage automatique via un LaunchAgent (`~/Library/LaunchAgents`), données dans `~/Library/Application Support/DofusWindowManager/`
 
 ## ⚙️ Configuration
 
@@ -77,9 +100,9 @@ python main.py
 
 ### Démarrage & mises à jour
 
-- **Démarrer avec Windows** : activable d'un clic dans le menu de l'icône system tray (clé Run du registre utilisateur, réversible au même endroit).
+- **Démarrer avec la session** : activable d'un clic dans le menu de l'icône system tray sous Windows (clé Run du registre utilisateur) ; sous macOS via `python -c "import autostart; autostart.enable()"` (LaunchAgent).
 - **Vérification de mise à jour** : au lancement, l'app compare sa version à la dernière release GitHub et affiche une notification si une plus récente existe (silencieux hors ligne).
-- **Données** : `config.json` et le cache de chasse vivent dans `%APPDATA%\DofusWindowManager\` (migration automatique depuis l'ancien emplacement à côté de l'exe).
+- **Données** : `config.json` et le cache de chasse vivent dans `%APPDATA%\DofusWindowManager\` (Windows) ou `~/Library/Application Support/DofusWindowManager/` (macOS), avec migration automatique depuis l'ancien emplacement à côté de l'exe.
 
 ### Comment quitter
 
@@ -144,23 +167,26 @@ Exemples pour claviers 60% :
 
 ```
 dofus-window-switcher/
-├── main.py                 # Point d'entrée
-├── window_detector.py      # Détection des fenêtres DOFUS
-├── window_manager.py       # Gestion de l'ordre et du switching
-├── hotkey_manager.py       # Gestion des raccourcis clavier
-├── overlay.py              # Interface overlay
-├── character_wheel.py      # Roue de sélection radiale
-├── class_icons.py          # Chargement des icônes de classe
-├── config_manager.py       # Gestion de la configuration
+├── main.py                  # Point d'entrée
+├── window_detector.py       # Détection des fenêtres (dispatch selon l'OS)
+├── window_detector_win.py   # Backend Windows (Win32)
+├── window_detector_mac.py   # Backend macOS (API Accessibility)
+├── platform_utils.py        # Helpers multi-plateformes
+├── window_manager.py        # Gestion de l'ordre et du switching
+├── hotkey_manager.py        # Gestion des raccourcis clavier
+├── overlay.py               # Interface overlay
+├── character_wheel.py       # Roue de sélection radiale
+├── class_icons.py           # Chargement des icônes de classe
+├── config_manager.py        # Gestion de la configuration
 └── requirements.txt
 ```
 
 ## 🔧 Technologies
 
-- **pywin32** : API Windows pour la détection et manipulation de fenêtres
-- **keyboard** : Gestion des hotkeys globaux
+- **pywin32** (Windows) / **pyobjc** (macOS) : détection et manipulation de fenêtres
+- **keyboard** (Windows) / **pynput** (macOS) : hotkeys globaux
 - **tkinter** : Interface graphique overlay
-- **pystray** : Icône system tray
+- **pystray** : Icône system tray (Windows)
 
 ## 📦 Release
 

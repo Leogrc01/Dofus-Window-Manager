@@ -63,9 +63,10 @@ class CharacterWheel:
         self.window.attributes('-topmost', True)
         self.window.attributes('-alpha', 0.95)
 
-        # Transparence du fond
+        # Transparence du fond (macOS : pas de couleur-clé, fond sombre)
         self.window.configure(bg=WHEEL_COLORS["bg_transparent"])
-        self.window.wm_attributes('-transparentcolor', WHEEL_COLORS["bg_transparent"])
+        from platform_utils import apply_color_key_transparency
+        apply_color_key_transparency(self.window, WHEEL_COLORS["bg_transparent"])
 
         # Canvas
         self.canvas = tk.Canvas(

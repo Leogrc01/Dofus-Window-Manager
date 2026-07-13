@@ -1,21 +1,48 @@
-"""Module pour gérer les raccourcis clavier et souris globaux."""
-import keyboard
+"""Module pour gérer les raccourcis clavier et souris globaux.
+
+Windows : lib 'keyboard' (hooks globaux).
+macOS   : pynput.GlobalHotKeys (nécessite l'autorisation Accessibilité).
+"""
 from pynput import mouse as pynput_mouse
 from typing import Callable, Dict, List, Optional
+from platform_utils import IS_MAC
 from window_manager import WindowManager
+
+if IS_MAC:
+    from pynput import keyboard as pynput_keyboard
+else:
+    import keyboard
 
 
 # Mapping des noms de boutons souris vers pynput
+# (x1/x2 n'existent pas sous macOS : seuls les boutons disponibles sont mappés)
 MOUSE_BUTTON_MAP = {
-    "mouse3": pynput_mouse.Button.middle,
-    "mouse4": pynput_mouse.Button.x1,
-    "mouse5": pynput_mouse.Button.x2,
+    name: button
+    for name, attr in (("mouse3", "middle"), ("mouse4", "x1"), ("mouse5", "x2"))
+    if (button := getattr(pynput_mouse.Button, attr, None)) is not None
 }
+
+# Modificateurs reconnus par pynput.GlobalHotKeys
+_PYNPUT_MODIFIERS = {"ctrl", "alt", "shift", "cmd"}
 
 
 def _is_mouse_button(key: str) -> bool:
     """Vérifie si la touche est un bouton souris."""
     return key.lower().strip() in MOUSE_BUTTON_MAP
+
+
+def _to_pynput_hotkey(hotkey: str) -> str:
+    """Convertit 'ctrl+alt+h' / 'f1' / '`' vers la syntaxe pynput '<ctrl>+<alt>+h'."""
+    converted = []
+    for part in hotkey.split('+'):
+        part = part.strip().lower()
+        if not part:
+            continue
+        if part in _PYNPUT_MODIFIERS or len(part) > 1:
+            converted.append(f'<{part}>')
+        else:
+            converted.append(part)
+    return '+'.join(converted)
 
 
 class HotkeyManager:
@@ -56,76 +83,59 @@ class HotkeyManager:
         # Listener souris (pynput)
         self._mouse_listener: Optional[pynput_mouse.Listener] = None
         self._mouse_callbacks: Dict[pynput_mouse.Button, Callable] = {}
-        
+
+        # Listener clavier pynput (macOS uniquement)
+        self._pynput_hotkeys: Dict[str, Callable] = {}
+        self._keyboard_listener = None
+
+    def _add_hotkey(self, key: str, callback: Callable):
+        """Enregistre un raccourci clavier via le backend de la plateforme."""
+        try:
+            if IS_MAC:
+                self._pynput_hotkeys[_to_pynput_hotkey(key)] = callback
+            else:
+                keyboard.add_hotkey(key, callback)
+            self.registered_hotkeys.append(key)
+        except Exception as e:
+            print(f"Erreur lors de l'enregistrement de {key}: {e}")
+
     def register_all(self):
         """Enregistre tous les raccourcis clavier et souris."""
         self.unregister_all()
-        
+
         # Raccourcis pour chaque position (F1-F8)
         for i, key in enumerate(self.position_keys):
-            try:
-                keyboard.add_hotkey(key, lambda pos=i: self._switch_to_position(pos))
-                self.registered_hotkeys.append(key)
-            except Exception as e:
-                print(f"Erreur lors de l'enregistrement de {key}: {e}")
-        
+            self._add_hotkey(key, lambda pos=i: self._switch_to_position(pos))
+
         # Raccourci pour passer au suivant (clavier ou souris)
         if _is_mouse_button(self.next_key):
             btn = MOUSE_BUTTON_MAP[self.next_key.lower().strip()]
             self._mouse_callbacks[btn] = self._switch_to_next
         else:
-            try:
-                keyboard.add_hotkey(self.next_key, self._switch_to_next)
-                self.registered_hotkeys.append(self.next_key)
-            except Exception as e:
-                print(f"Erreur lors de l'enregistrement de {self.next_key}: {e}")
-        
+            self._add_hotkey(self.next_key, self._switch_to_next)
+
         # Raccourci pour passer au précédent (clavier ou souris)
         if _is_mouse_button(self.previous_key):
             btn = MOUSE_BUTTON_MAP[self.previous_key.lower().strip()]
             self._mouse_callbacks[btn] = self._switch_to_previous
         else:
-            try:
-                keyboard.add_hotkey(self.previous_key, self._switch_to_previous)
-                self.registered_hotkeys.append(self.previous_key)
-            except Exception as e:
-                print(f"Erreur lors de l'enregistrement de {self.previous_key}: {e}")
-        
-        # Raccourci pour afficher/masquer l'overlay
-        try:
-            keyboard.add_hotkey(self.toggle_overlay_key, self._toggle_overlay)
-            self.registered_hotkeys.append(self.toggle_overlay_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.toggle_overlay_key}: {e}")
-        
-        # Raccourci pour ouvrir la configuration
-        try:
-            keyboard.add_hotkey(self.open_config_key, self._open_config)
-            self.registered_hotkeys.append(self.open_config_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.open_config_key}: {e}")
-        
-        # Raccourci pour quitter
-        try:
-            keyboard.add_hotkey(self.quit_key, self._quit)
-            self.registered_hotkeys.append(self.quit_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.quit_key}: {e}")
-        
-        # Raccourci pour la roue de sélection
-        try:
-            keyboard.add_hotkey(self.wheel_key, self._toggle_wheel)
-            self.registered_hotkeys.append(self.wheel_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.wheel_key}: {e}")
+            self._add_hotkey(self.previous_key, self._switch_to_previous)
 
-        # Raccourci pour l'assistant de chasse au trésor
-        try:
-            keyboard.add_hotkey(self.hunt_key, self._toggle_hunt)
-            self.registered_hotkeys.append(self.hunt_key)
-        except Exception as e:
-            print(f"Erreur lors de l'enregistrement de {self.hunt_key}: {e}")
-        
+        # Raccourcis overlay / config / quitter / roue / chasse
+        self._add_hotkey(self.toggle_overlay_key, self._toggle_overlay)
+        self._add_hotkey(self.open_config_key, self._open_config)
+        self._add_hotkey(self.quit_key, self._quit)
+        self._add_hotkey(self.wheel_key, self._toggle_wheel)
+        self._add_hotkey(self.hunt_key, self._toggle_hunt)
+
+        # macOS : démarrer le listener global pynput
+        if IS_MAC and self._pynput_hotkeys:
+            try:
+                self._keyboard_listener = pynput_keyboard.GlobalHotKeys(self._pynput_hotkeys)
+                self._keyboard_listener.start()
+            except Exception as e:
+                print(f"Erreur lors du démarrage des raccourcis clavier: {e}")
+
         # Démarrer le listener souris si des boutons sont configurés
         self._start_mouse_listener()
     
@@ -148,13 +158,22 @@ class HotkeyManager:
             self._mouse_listener.stop()
             self._mouse_listener = None
         self._mouse_callbacks.clear()
-        
+
         # Raccourcis clavier
-        for hotkey in self.registered_hotkeys:
-            try:
-                keyboard.remove_hotkey(hotkey)
-            except Exception:
-                pass
+        if IS_MAC:
+            if self._keyboard_listener:
+                try:
+                    self._keyboard_listener.stop()
+                except Exception:
+                    pass
+                self._keyboard_listener = None
+            self._pynput_hotkeys.clear()
+        else:
+            for hotkey in self.registered_hotkeys:
+                try:
+                    keyboard.remove_hotkey(hotkey)
+                except Exception:
+                    pass
         self.registered_hotkeys.clear()
     
     def _switch_allowed(self) -> bool:

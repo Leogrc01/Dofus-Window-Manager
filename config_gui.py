@@ -87,28 +87,29 @@ class ConfigWindow:
         y = (self.root.winfo_screenheight() - 700) // 2
         self.root.geometry(f"750x700+{x}+{y}")
         
-        # Réafficher dans la taskbar + forcer le focus (Win32)
-        self.root.update_idletasks()
-        hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id())
-        # Ajouter WS_EX_APPWINDOW pour apparaître dans la taskbar
-        GWL_EXSTYLE = -20
-        WS_EX_APPWINDOW = 0x00040000
-        WS_EX_TOOLWINDOW = 0x00000080
-        style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-        style = (style | WS_EX_APPWINDOW) & ~WS_EX_TOOLWINDOW
-        ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
-        # Icône de la fenêtre (taskbar)
-        icon_path = os.path.join(_get_base_dir(), "DWM.ico")
-        if os.path.exists(icon_path):
-            self.root.iconbitmap(icon_path)
-            # Aussi via Win32 pour fiabilité avec overrideredirect
-            WM_SETICON = 0x0080
-            icon_handle = ctypes.windll.user32.LoadImageW(
-                0, icon_path, 1, 0, 0, 0x00000010  # IMAGE_ICON + LR_LOADFROMFILE
-            )
-            if icon_handle:
-                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 0, icon_handle)  # ICON_SMALL
-                ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 1, icon_handle)  # ICON_BIG
+        # Réafficher dans la taskbar + forcer le focus (Windows uniquement)
+        if sys.platform == "win32":
+            self.root.update_idletasks()
+            hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id())
+            # Ajouter WS_EX_APPWINDOW pour apparaître dans la taskbar
+            GWL_EXSTYLE = -20
+            WS_EX_APPWINDOW = 0x00040000
+            WS_EX_TOOLWINDOW = 0x00000080
+            style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+            style = (style | WS_EX_APPWINDOW) & ~WS_EX_TOOLWINDOW
+            ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+            # Icône de la fenêtre (taskbar)
+            icon_path = os.path.join(_get_base_dir(), "DWM.ico")
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+                # Aussi via Win32 pour fiabilité avec overrideredirect
+                WM_SETICON = 0x0080
+                icon_handle = ctypes.windll.user32.LoadImageW(
+                    0, icon_path, 1, 0, 0, 0x00000010  # IMAGE_ICON + LR_LOADFROMFILE
+                )
+                if icon_handle:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 0, icon_handle)  # ICON_SMALL
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 1, icon_handle)  # ICON_BIG
         
         # Forcer au premier plan (topmost temporaire)
         self.root.attributes('-topmost', True)

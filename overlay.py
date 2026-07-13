@@ -3,6 +3,7 @@ import tkinter as tk
 from typing import Callable, List, Optional
 
 from class_icons import get_class_icon
+from platform_utils import apply_color_key_transparency
 
 ICON_SIZE = 20  # Taille des icônes de classe dans l'overlay
 BG_COLOR = "#1a1a1a"          # Fond du bandeau (palette Dofus 3)
@@ -59,9 +60,10 @@ class OverlayWindow:
             self.root.overrideredirect(True)  # Pas de bordure de fenêtre
             
             # Coins arrondis : le fond de la fenêtre est transparent (couleur-clé),
-            # un rectangle arrondi est dessiné sur le canvas sous les widgets
+            # un rectangle arrondi est dessiné sur le canvas sous les widgets.
+            # macOS : pas de couleur-clé, le fond reste sombre (quasi noir).
             self.root.configure(bg=TRANSPARENT_KEY)
-            self.root.wm_attributes('-transparentcolor', TRANSPARENT_KEY)
+            apply_color_key_transparency(self.root, TRANSPARENT_KEY)
 
             self.canvas = tk.Canvas(
                 self.root,

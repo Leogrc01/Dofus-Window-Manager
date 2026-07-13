@@ -221,17 +221,17 @@ class DofusWindowSwitcher:
         pour ouvrir le chat, frappe de la commande, Entrée pour l'envoyer.
         """
         def worker():
-            import keyboard
+            import platform_utils
             char = self.window_manager.get_current_character()
             if not char or not self.detector.is_window_valid(char.hwnd):
                 return
             self.detector.focus_window(char.hwnd)
             time.sleep(0.35)  # Laisser la fenêtre prendre le focus
-            keyboard.send('enter')
+            platform_utils.press_enter()
             time.sleep(0.15)
-            keyboard.write(command, delay=0.01)
+            platform_utils.write_text(command, delay=0.01)
             time.sleep(0.1)
-            keyboard.send('enter')
+            platform_utils.press_enter()
 
         threading.Thread(target=worker, daemon=True).start()
     
@@ -323,7 +323,7 @@ class DofusWindowSwitcher:
             item('---', lambda: None),
             item('Chasse au trésor', lambda: self._toggle_hunt()),
             item('---', lambda: None),
-            item('Démarrer avec Windows', lambda: autostart.toggle(),
+            item('Démarrer avec la session', lambda: autostart.toggle(),
                  checked=lambda _: autostart.is_enabled()),
             item('---', lambda: None),
             item('Quitter', lambda: self.quit())
@@ -356,11 +356,16 @@ class DofusWindowSwitcher:
     def run(self):
         """Lance l'application."""
         self.running = True
-        
-        # Créer et lancer l'icône system tray dans un thread
-        self._create_tray_icon()
-        tray_thread = threading.Thread(target=self._run_tray_icon, daemon=True)
-        tray_thread.start()
+
+        # Créer et lancer l'icône system tray dans un thread.
+        # macOS : pystray exige le thread principal (occupé par Tk) → désactivé,
+        # tout reste accessible via les raccourcis clavier.
+        if sys.platform == "darwin":
+            print("(macOS) Icône de barre système désactivée — utilisez les raccourcis clavier.")
+        else:
+            self._create_tray_icon()
+            tray_thread = threading.Thread(target=self._run_tray_icon, daemon=True)
+            tray_thread.start()
 
         # Vérifier les mises à jour en arrière-plan (silencieux si hors ligne)
         threading.Thread(target=self._check_for_update, daemon=True).start()
